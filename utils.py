@@ -3,6 +3,7 @@ import os
 import pickle
 import random
 import re
+
 import requests
 from bs4 import BeautifulSoup
 from mtranslate import translate
@@ -34,7 +35,7 @@ def get_keywords():
     for keyword in keywords:
         japanese_keyword = translate(keyword, 'ja')
         print('[Google Translate] {} -> {}'.format(keyword, japanese_keyword))
-        if re.search('[a-zA-Z]', japanese_keyword): # we don't want that: Fed watch -> Fed時計
+        if re.search('[a-zA-Z]', japanese_keyword):  # we don't want that: Fed watch -> Fed時計
             continue
         yield japanese_keyword
         # japanese_keywords.append(japanese_keyword)
@@ -44,10 +45,10 @@ def get_keywords():
 def run():
     for keyword in get_keywords():
         print('KEYWORD = {}'.format(keyword))
-        get_articles(keyword)
+        generate_articles(keyword)
 
 
-def get_articles(keyword, year_start=2010, year_end=2016, limit=100):
+def generate_articles(keyword, year_start=2010, year_end=2016, limit=300):
     tmp_news_folder = 'data/{}/news'.format(keyword)
     mkdir_p(tmp_news_folder)
 
@@ -66,29 +67,34 @@ def get_articles(keyword, year_start=2010, year_end=2016, limit=100):
                                 sleep_time_every_ten_articles=10)
         pickle.dump(links, open(pickle_file, 'wb'))
 
-    articles = []
+    full_articles = []
     for full_link in links:
         link = full_link[0]
         title = full_link[1]
         compliant_filename_for_link = slugify(link)
+        max_len = 100
+        if len(compliant_filename_for_link) > max_len:
+            print('max length exceeded for filename ({}). Truncating.'.format(compliant_filename_for_link))
+            compliant_filename_for_link = compliant_filename_for_link[:max_len]
         pickle_file = '{}/{}.pkl'.format(tmp_news_folder, compliant_filename_for_link)
         already_fetched = os.path.isfile(pickle_file)
         if already_fetched:
             article = pickle.load(open(pickle_file, 'rb'))
         else:
             try:
-                article = download_html_from_link(link)
+                raw_text = download_html_from_link(link)
             except:
-                article = ''
+                raw_text = ''
                 print('ERROR could not download article with link {}'.format(link))
-            article = clean_html(article, filter_on_paragraph_length=60)
-            pickle.dump({'link': link,
-                         'title': title,
-                         'article': article
-                         },
-                        open(pickle_file, 'wb'))
-        articles.append(article)
-    return articles, links
+            text = clean_html(raw_text, filter_on_paragraph_length=60)
+            article = {'link': link,
+                       'title': title,
+                       'text': text,
+                       'raw_text': raw_text,
+                       }
+            pickle.dump(article, open(pickle_file, 'wb'))
+        full_articles.append(article)
+    return full_articles
 
 
 def get_google_search_results(keyword):
