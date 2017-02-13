@@ -1,9 +1,11 @@
 import errno
 import os
 import pickle
-
+import random
+import re
 import requests
 from bs4 import BeautifulSoup
+from mtranslate import translate
 from slugify import slugify
 
 from core import google_news_run
@@ -26,7 +28,17 @@ def get_keywords():
     keywords = [l.replace('news', '') for l in
                 set([v.text for v in soup.find_all('td', {'class': 'devtableitem'}) if 'http' not in v.text])]
     assert len(keywords) > 0
-    return keywords
+    # japanese_keywords = []
+
+    random.shuffle(keywords)
+    for keyword in keywords:
+        japanese_keyword = translate(keyword, 'ja')
+        print('[Google Translate] {} -> {}'.format(keyword, japanese_keyword))
+        if re.search('[a-zA-Z]', japanese_keyword): # we don't want that: Fed watch -> Fed時計
+            continue
+        yield japanese_keyword
+        # japanese_keywords.append(japanese_keyword)
+        # return japanese_keywords
 
 
 def run():
