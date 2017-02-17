@@ -1,4 +1,4 @@
-from utils import generate_articles, run
+from core import run
 
 if __name__ == '__main__':
     # https://news.google.co.jp
