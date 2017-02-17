@@ -13,6 +13,8 @@ from mtranslate import translate
 from numpy import random
 from slugify import slugify
 
+RATIO_LETTERS_LENGTH = 0.33
+
 
 class BannedFromGoogleException(Exception):
     pass
@@ -119,10 +121,16 @@ def generate_articles(keyword, year_start=2010, year_end=2016, limit=300):
                                 sleep_time_every_ten_articles=10)
         pickle.dump(links, open(pickle_file, 'wb'))
 
+    full_articles = retrieve_data_from_links(links, tmp_news_folder)
+
+    return full_articles
+
+
+def retrieve_data_from_links(links, tmp_news_folder):
     full_articles = []
     for full_link in links:
         link = full_link[0]
-        title = full_link[1]
+        google_title = full_link[1]
         compliant_filename_for_link = slugify(link)
         max_len = 100
         if len(compliant_filename_for_link) > max_len:
@@ -138,9 +146,9 @@ def generate_articles(keyword, year_start=2010, year_end=2016, limit=300):
             except:
                 raw_text = ''
                 print('ERROR could not download article with link {}'.format(link))
-            text = clean_html(raw_text, filter_on_paragraph_length=60)
+            text, full_title = clean_html_and_complete_title(raw_text, google_title)
             article = {'link': link,
-                       'title': title,
+                       'title': full_title,
                        'text': text,
                        'raw_text': raw_text,
                        }
@@ -176,18 +184,37 @@ def download_html_from_link(link, params=None, fail_on_error=True, debug=True):
         return None
 
 
-def clean_html(html_page, filter_on_paragraph_length=60):
+def update_title(soup, google_article_title):
+    if '...' not in google_article_title:
+        return google_article_title
+    truncated_title = google_article_title[:-4]  # remove ' ...' at the end.
+    title_list = [v.text for v in soup.find_all('h1') if len(v.text) > 0]
+    for title in title_list:
+        if truncated_title in title:
+            return title
+    return google_article_title
+
+
+def clean_html_and_complete_title(html_page, google_article_title):
     if html_page is None:
         return ''
     soup = BeautifulSoup(html_page, 'html.parser')
-    text = '\n\n'.join([v.text for v in soup.find_all('p') if len(v.text) > 0])
-    if filter_on_paragraph_length > 0:
-        text = '. '.join([v for v in text.split('\n') if len(v) > filter_on_paragraph_length])
-    return text
+    # soup.contents (show without formatting).
+    text_list = [v.text for v in soup.find_all('p') if len(v.text) > 0]
+
+    words_to_bans = ['<', 'javascript']
+    for word_to_ban in words_to_bans:
+        text_list = list(filter(lambda x: word_to_ban not in x.lower(), text_list))
+
+    text_list = [t for t in text_list if len(re.findall('[a-z]', t.lower())) / (len(t) + 1) < RATIO_LETTERS_LENGTH]
+
+    text = ' '.join(text_list)
+    text = text.replace('\n', ' ')
+    full_title = update_title(soup, google_article_title)
+    return text, full_title
 
 
 if __name__ == '__main__':
     print(get_keywords())
     _html_ = download_html_from_link('http://www.motortrend.com/cars/toyota/camry/2007/0603fs-2007-toyota-camry/')
-    print(clean_html(_html_))
     print(get_google_search_results('hello'))

@@ -1,0 +1,7 @@
+fake_useragent
+mtranslate
+requests
+beautifulsoup4
+gnp
+unicode_slugify
+numpy
