@@ -145,6 +145,7 @@ def retrieve_data_from_links(links, tmp_news_folder):
                 raw_text = ''
                 print('ERROR could not download article with link {}'.format(link))
             text, full_title = clean_html_and_complete_title(raw_text, google_title)
+            text = re.sub('\s\s+', ' ', text)  # remove multiple spaces.
             article = {'link': link,
                        'title': full_title,
                        'text': text,

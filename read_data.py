@@ -1,5 +1,5 @@
-from glob import glob
 import pickle
+from glob import glob
 
 if __name__ == '__main__':
     all_news = glob('data/**/news/*.pkl', recursive=True)
