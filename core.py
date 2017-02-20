@@ -18,6 +18,16 @@ from constants import *
 NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT = 0
 
 
+def parallel_function(f, sequence, num_threads=None):
+    from multiprocessing import Pool
+    pool = Pool(processes=num_threads)
+    result = pool.map(f, sequence)
+    cleaned = [x for x in result if x is not None]
+    pool.close()
+    pool.join()
+    return cleaned
+
+
 def forge_url(q, start, year_start, year_end):
     global NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT
     NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT += 1
@@ -120,40 +130,44 @@ def generate_articles(keyword, year_start=2010, year_end=2016, limit=ARTICLE_COU
                                 debug=True,
                                 sleep_time_every_ten_articles=SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS)
         pickle.dump(links, open(pickle_file, 'wb'))
-    full_articles = retrieve_data_from_links(links, tmp_news_folder)
-    return full_articles
+    retrieve_data_from_links(links, tmp_news_folder)
+
+
+def retrieve_data_for_link(full_link, tmp_news_folder):
+    link = full_link[0]
+    google_title = full_link[1]
+    compliant_filename_for_link = slugify(link)
+    max_len = 100
+    if len(compliant_filename_for_link) > max_len:
+        print('max length exceeded for filename ({}). Truncating.'.format(compliant_filename_for_link))
+        compliant_filename_for_link = compliant_filename_for_link[:max_len]
+    pickle_file = '{}/{}.pkl'.format(tmp_news_folder, compliant_filename_for_link)
+    already_fetched = os.path.isfile(pickle_file)
+    if already_fetched:
+        return
+        # article = pickle.load(open(pickle_file, 'rb'))
+    else:
+        try:
+            raw_text = download_html_from_link(link)
+        except:
+            raw_text = ''
+            print('ERROR could not download article with link {}'.format(link))
+        text, full_title = clean_html_and_complete_title(raw_text, google_title)
+        text = re.sub('\s\s+', ' ', text)  # remove multiple spaces.
+        article = {'link': link,
+                   'title': full_title,
+                   'text': text,
+                   'raw_text': raw_text,
+                   }
+        pickle.dump(article, open(pickle_file, 'wb'))
 
 
 def retrieve_data_from_links(links, tmp_news_folder):
-    full_articles = []
-    for full_link in links:
-        link = full_link[0]
-        google_title = full_link[1]
-        compliant_filename_for_link = slugify(link)
-        max_len = 100
-        if len(compliant_filename_for_link) > max_len:
-            print('max length exceeded for filename ({}). Truncating.'.format(compliant_filename_for_link))
-            compliant_filename_for_link = compliant_filename_for_link[:max_len]
-        pickle_file = '{}/{}.pkl'.format(tmp_news_folder, compliant_filename_for_link)
-        already_fetched = os.path.isfile(pickle_file)
-        if already_fetched:
-            article = pickle.load(open(pickle_file, 'rb'))
-        else:
-            try:
-                raw_text = download_html_from_link(link)
-            except:
-                raw_text = ''
-                print('ERROR could not download article with link {}'.format(link))
-            text, full_title = clean_html_and_complete_title(raw_text, google_title)
-            text = re.sub('\s\s+', ' ', text)  # remove multiple spaces.
-            article = {'link': link,
-                       'title': full_title,
-                       'text': text,
-                       'raw_text': raw_text,
-                       }
-            pickle.dump(article, open(pickle_file, 'wb'))
-        full_articles.append(article)
-    return full_articles
+    if MULTI_THREADING:
+        parallel_function(retrieve_data_for_link, links, NUM_THREADS)
+    else:
+        for full_link in links:
+            retrieve_data_for_link(full_link, tmp_news_folder)
 
 
 def download_html_from_link(link, params=None, fail_on_error=True, debug=True):
