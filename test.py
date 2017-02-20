@@ -5,7 +5,7 @@ from mtranslate import translate
 from core import retrieve_data_from_links
 
 
-def main():
+def test_google_translate_api():
     to_translate = 'Procter & Gamble'
     print(translate(to_translate))
     print(translate(to_translate, 'ja'))
@@ -21,6 +21,8 @@ if __name__ == '__main__':
     # links = [('https://www.travelvoice.jp/20160808-71985',
     #          'グーグル検索から飲食店予約が可能に、ホットペッパー・食べログ・一休に ...')]
 
-    links = [('http://www.news24.jp/articles/2016/06/27/07333796.html', '車の自動走行に向け課題を議論 警察庁')]
-
+    # links = [('http://www.news24.jp/articles/2016/06/27/07333796.html', '車の自動走行に向け課題を議論 警察庁')]
+    # links = [('http://ascii.jp/elem/000/000/606/606175/', '日立ソリューションズ、在宅勤務「SecureOnline」にWeb認証')]
+    # links = [('http://the-liberty.com/article.php?item_id=10396', '安倍首相、中央アジア訪問 中国の経済支援との質的違いとは?')]
+    links = [('http://tower.jp/article/feature_item/2015/05/19/0105', 'チルアウト/バレアリック界のレジェンド＝ホセ・パディーヤ、14年振り新作')]
     retrieve_data_from_links(links, '')
