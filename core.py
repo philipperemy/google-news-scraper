@@ -13,16 +13,15 @@ from mtranslate import translate
 from numpy import random
 from slugify import slugify
 
-RATIO_LETTERS_LENGTH = 0.33
+from constants import *
 
-
-class BannedFromGoogleException(Exception):
-    pass
+NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT = 0
 
 
 def forge_url(q, start, year_start, year_end):
-    return 'https://www.google.co.jp/search?q={}&hl=ja&source=lnt&tbs=cdr%3A1%2Ccd_min%3A{}%2Ccd_max%3A{}&tbm=nws&start={}'.format(
-        q.replace(' ', '+'), str(year_start), str(year_end), start)
+    global NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT
+    NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT += 1
+    return GOOGLE_NEWS_URL.format(q.replace(' ', '+'), str(year_start), str(year_end), start)
 
 
 def extract_links(content):
@@ -46,18 +45,22 @@ def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, debug=Tru
         url = forge_url(keyword, num_articles_index, year_start, year_end)
         if debug:
             print('For Google -> {}'.format(url))
+            print('Total number of calls to Google = {}'.format(NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT))
         headers = {'User-Agent': ua.chrome}
         response = requests.get(url, headers=headers)
         links = extract_links(response.content)
 
         nb_links = len(links)
         if nb_links == 0 and num_articles_index == 0:
-            print('Banned from Google. Retry tomorrow or change of IP Address.')
-            raise BannedFromGoogleException()
+            raise Exception(
+                'No results fetched. Either the keyword is wrong '
+                'or you have been banned from Google. Retry tomorrow '
+                'or change of IP Address.')
 
         for i in range(nb_links):
             if debug:
-                print('{}'.format(links[i]))
+                cur_link = links[i]
+                print('TITLE = {}, URL = {}'.format(cur_link[1], cur_link[0]))
         num_articles_index += 10
         result.extend(links)
         if debug and sleep_time_every_ten_articles != 0:
@@ -83,7 +86,6 @@ def get_keywords():
     keywords = [l.replace('news', '') for l in
                 set([v.text for v in soup.find_all('td', {'class': 'devtableitem'}) if 'http' not in v.text])]
     assert len(keywords) > 0
-    # japanese_keywords = []
 
     random.shuffle(keywords)
     for keyword in keywords:
@@ -92,8 +94,6 @@ def get_keywords():
         if re.search('[a-zA-Z]', japanese_keyword):  # we don't want that: Fed watch -> Fed時計
             continue
         yield japanese_keyword
-        # japanese_keywords.append(japanese_keyword)
-        # return japanese_keywords
 
 
 def run():
@@ -102,7 +102,7 @@ def run():
         generate_articles(keyword)
 
 
-def generate_articles(keyword, year_start=2010, year_end=2016, limit=300):
+def generate_articles(keyword, year_start=2010, year_end=2016, limit=ARTICLE_COUNT_LIMIT_PER_KEYWORD):
     tmp_news_folder = 'data/{}/news'.format(keyword)
     mkdir_p(tmp_news_folder)
 
@@ -118,11 +118,9 @@ def generate_articles(keyword, year_start=2010, year_end=2016, limit=300):
                                 year_start=year_start,
                                 year_end=year_end,
                                 debug=True,
-                                sleep_time_every_ten_articles=10)
+                                sleep_time_every_ten_articles=SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS)
         pickle.dump(links, open(pickle_file, 'wb'))
-
     full_articles = retrieve_data_from_links(links, tmp_news_folder)
-
     return full_articles
 
 
@@ -155,17 +153,6 @@ def retrieve_data_from_links(links, tmp_news_folder):
             pickle.dump(article, open(pickle_file, 'wb'))
         full_articles.append(article)
     return full_articles
-
-
-def get_google_search_results(keyword):
-    links = []
-    for start in range(0, 10):
-        url = "https://www.google.co.jp/search?q={}&start={}".format(keyword, str(start * 10))
-        page = requests.get(url).content
-        soup = BeautifulSoup(page, 'html.parser')
-        for cite in soup.findAll('cite'):
-            links.append(cite.text)
-    return links
 
 
 def download_html_from_link(link, params=None, fail_on_error=True, debug=True):
@@ -206,15 +193,12 @@ def clean_html_and_complete_title(html_page, google_article_title):
     for word_to_ban in words_to_bans:
         text_list = list(filter(lambda x: word_to_ban not in x.lower(), text_list))
 
-    text_list = [t for t in text_list if len(re.findall('[a-z]', t.lower())) / (len(t) + 1) < RATIO_LETTERS_LENGTH]
+    text_list = [t for t in text_list if
+                 len(re.findall('[a-z]', t.lower())) / (len(t) + 1) < CLEAN_HTML_RATIO_LETTERS_LENGTH]
 
     text = ' '.join(text_list)
     text = text.replace('\n', ' ')
-    full_title = update_title(soup, google_article_title)
+    full_title = update_title(soup, google_article_title).strip()
+    if full_title != google_article_title:
+        print('updated title: old is [{}], new is [{}]'.format(google_article_title, full_title))
     return text, full_title
-
-
-if __name__ == '__main__':
-    print(get_keywords())
-    _html_ = download_html_from_link('http://www.motortrend.com/cars/toyota/camry/2007/0603fs-2007-toyota-camry/')
-    print(get_google_search_results('hello'))

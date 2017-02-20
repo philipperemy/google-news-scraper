@@ -21,6 +21,6 @@ if __name__ == '__main__':
     # links = [('https://www.travelvoice.jp/20160808-71985',
     #          'グーグル検索から飲食店予約が可能に、ホットペッパー・食べログ・一休に ...')]
 
-    links = [('http://www.news24.jp/articles/2016/06/27/07333796.html', '車の自動走行に向け課題を議論 警察庁')]
-
+    # links = [('http://www.news24.jp/articles/2016/06/27/07333796.html', '車の自動走行に向け課題を議論 警察庁')]
+    links = [('http://ascii.jp/elem/000/000/606/606175/', '日立ソリューションズ、在宅勤務「SecureOnline」にWeb認証')]
     retrieve_data_from_links(links, '')
