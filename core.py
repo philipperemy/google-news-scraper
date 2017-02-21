@@ -133,7 +133,8 @@ def generate_articles(keyword, year_start=2010, year_end=2016, limit=ARTICLE_COU
     retrieve_data_from_links(links, tmp_news_folder)
 
 
-def retrieve_data_for_link(full_link, tmp_news_folder):
+def retrieve_data_for_link(param):
+    (full_link, tmp_news_folder) = param
     link = full_link[0]
     google_title = full_link[1]
     compliant_filename_for_link = slugify(link)
@@ -162,12 +163,13 @@ def retrieve_data_for_link(full_link, tmp_news_folder):
         pickle.dump(article, open(pickle_file, 'wb'))
 
 
-def retrieve_data_from_links(links, tmp_news_folder):
+def retrieve_data_from_links(full_links, tmp_news_folder):
     if MULTI_THREADING:
-        parallel_function(retrieve_data_for_link, links, NUM_THREADS)
+        inputs = [(full_links, tmp_news_folder) for full_links in full_links]
+        parallel_function(retrieve_data_for_link, inputs, NUM_THREADS)
     else:
-        for full_link in links:
-            retrieve_data_for_link(full_link, tmp_news_folder)
+        for full_link in full_links:
+            retrieve_data_for_link((full_link, tmp_news_folder))
 
 
 def download_html_from_link(link, params=None, fail_on_error=True, debug=True):
