@@ -56,22 +56,26 @@ def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, debug=Tru
             print('For Google -> {}'.format(url))
             print('Total number of calls to Google = {}'.format(NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT))
         headers = {'User-Agent': ua.chrome}
-        response = requests.get(url, headers=headers, timeout=20)
-        links = extract_links(response.content)
+        try:
+            response = requests.get(url, headers=headers, timeout=20)
+            links = extract_links(response.content)
 
-        nb_links = len(links)
-        if nb_links == 0 and num_articles_index == 0:
-            raise Exception(
-                'No results fetched. Either the keyword is wrong '
-                'or you have been banned from Google. Retry tomorrow '
-                'or change of IP Address.')
+            nb_links = len(links)
+            if nb_links == 0 and num_articles_index == 0:
+                raise Exception(
+                    'No results fetched. Either the keyword is wrong '
+                    'or you have been banned from Google. Retry tomorrow '
+                    'or change of IP Address.')
 
-        for i in range(nb_links):
-            if debug:
-                cur_link = links[i]
-                print('TITLE = {}, URL = {}'.format(cur_link[1], cur_link[0]))
+            for i in range(nb_links):
+                if debug:
+                    cur_link = links[i]
+                    print('TITLE = {}, URL = {}'.format(cur_link[1], cur_link[0]))
+            result.extend(links)
+        except requests.exceptions.Timeout:
+            print('Google news TimeOut. Maybe the connection is too slow. Skipping.')
+            pass
         num_articles_index += 10
-        result.extend(links)
         if debug and sleep_time_every_ten_articles != 0:
             print('Program is going to sleep for {} seconds.'.format(sleep_time_every_ten_articles))
         time.sleep(sleep_time_every_ten_articles)
@@ -89,7 +93,8 @@ def mkdir_p(path):
 
 
 def get_keywords():
-    response = requests.get('http://www.generalecommerce.com/clients/broadcastnews_tv/category_list_js.html', timeout=20)
+    response = requests.get('http://www.generalecommerce.com/clients/broadcastnews_tv/category_list_js.html',
+                            timeout=20)
     assert response.status_code == 200
     soup = BeautifulSoup(response.content, 'html.parser')
     keywords = [l.replace('news', '') for l in
