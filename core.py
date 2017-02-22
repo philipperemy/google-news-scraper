@@ -10,24 +10,11 @@ import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from mtranslate import translate
-from numpy import random
 from slugify import slugify
 
 from constants import *
 
-
-class PickleHitRate(object):
-    def __init__(self):
-        self.already_fetched_count = 0
-        self.total_fetched_count = 0
-
-    def compute(self):
-        return float(self.total_fetched_count - self.already_fetched_count) / self.total_fetched_count
-
-
 NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT = 0
-
-PICKLE_HIT_RATE = PickleHitRate()
 
 
 def parallel_function(f, sequence, num_threads=None):
@@ -109,7 +96,7 @@ def get_keywords():
                 set([v.text for v in soup.find_all('td', {'class': 'devtableitem'}) if 'http' not in v.text])]
     assert len(keywords) > 0
 
-    random.shuffle(keywords)
+    # random.shuffle(keywords)
     for keyword in keywords:
         japanese_keyword = translate(keyword, 'ja')
         print('[Google Translate] {} -> {}'.format(keyword, japanese_keyword))
@@ -159,11 +146,7 @@ def retrieve_data_for_link(param):
         compliant_filename_for_link = compliant_filename_for_link[:max_len]
     pickle_file = '{}/{}.pkl'.format(tmp_news_folder, compliant_filename_for_link)
     already_fetched = os.path.isfile(pickle_file)
-    PICKLE_HIT_RATE.total_fetched_count += 1
-    if already_fetched:
-        PICKLE_HIT_RATE.already_fetched_count += 1
-        return
-    else:
+    if not already_fetched:
         try:
             raw_text = download_html_from_link(link)
         except:
@@ -177,7 +160,6 @@ def retrieve_data_for_link(param):
                    'raw_text': raw_text,
                    }
         pickle.dump(article, open(pickle_file, 'wb'))
-    print('Pickle hit rate = {0:.2f}'.format(PICKLE_HIT_RATE.compute()))
 
 
 def retrieve_data_from_links(full_links, tmp_news_folder):
