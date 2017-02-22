@@ -56,7 +56,7 @@ def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, debug=Tru
             print('For Google -> {}'.format(url))
             print('Total number of calls to Google = {}'.format(NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT))
         headers = {'User-Agent': ua.chrome}
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=20)
         links = extract_links(response.content)
 
         nb_links = len(links)
@@ -89,7 +89,7 @@ def mkdir_p(path):
 
 
 def get_keywords():
-    response = requests.get('http://www.generalecommerce.com/clients/broadcastnews_tv/category_list_js.html')
+    response = requests.get('http://www.generalecommerce.com/clients/broadcastnews_tv/category_list_js.html', timeout=20)
     assert response.status_code == 200
     soup = BeautifulSoup(response.content, 'html.parser')
     keywords = [l.replace('news', '') for l in
