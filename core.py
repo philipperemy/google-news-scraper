@@ -133,8 +133,9 @@ def generate_articles(keyword, year_start=2010, year_end=2016, limit=ARTICLE_COU
 
     pickle_file = '{}/{}_{}_{}_links.pkl'.format(tmp_link_folder, keyword, year_start, year_end)
     if os.path.isfile(pickle_file):
-
+        print('Google news links for keyword [{}] have been fetched already.'.format(keyword))
         links = pickle.load(open(pickle_file, 'rb'))
+        print('Found {} links.'.format(len(links)))
     else:
         links = google_news_run(keyword=keyword,
                                 limit=limit,
@@ -147,6 +148,7 @@ def generate_articles(keyword, year_start=2010, year_end=2016, limit=ARTICLE_COU
 
 
 def retrieve_data_for_link(param):
+    print('retrieve_data_for_link - param = {}'.format(param))
     (full_link, tmp_news_folder) = param
     link = full_link[0]
     google_title = full_link[1]
