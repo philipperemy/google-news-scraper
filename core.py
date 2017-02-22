@@ -15,7 +15,19 @@ from slugify import slugify
 
 from constants import *
 
+
+class PickleHitRate(object):
+    def __init__(self):
+        self.already_fetched_count = 0
+        self.total_fetched_count = 0
+
+    def compute(self):
+        return float(self.total_fetched_count - self.already_fetched_count) / self.total_fetched_count
+
+
 NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT = 0
+
+PICKLE_HIT_RATE = PickleHitRate()
 
 
 def parallel_function(f, sequence, num_threads=None):
@@ -121,6 +133,7 @@ def generate_articles(keyword, year_start=2010, year_end=2016, limit=ARTICLE_COU
 
     pickle_file = '{}/{}_{}_{}_links.pkl'.format(tmp_link_folder, keyword, year_start, year_end)
     if os.path.isfile(pickle_file):
+
         links = pickle.load(open(pickle_file, 'rb'))
     else:
         links = google_news_run(keyword=keyword,
@@ -144,9 +157,10 @@ def retrieve_data_for_link(param):
         compliant_filename_for_link = compliant_filename_for_link[:max_len]
     pickle_file = '{}/{}.pkl'.format(tmp_news_folder, compliant_filename_for_link)
     already_fetched = os.path.isfile(pickle_file)
+    PICKLE_HIT_RATE.total_fetched_count += 1
     if already_fetched:
+        PICKLE_HIT_RATE.already_fetched_count += 1
         return
-        # article = pickle.load(open(pickle_file, 'rb'))
     else:
         try:
             raw_text = download_html_from_link(link)
@@ -161,6 +175,7 @@ def retrieve_data_for_link(param):
                    'raw_text': raw_text,
                    }
         pickle.dump(article, open(pickle_file, 'wb'))
+    print('Pickle hit rate = {0:.2f}'.format(PICKLE_HIT_RATE.compute()))
 
 
 def retrieve_data_from_links(full_links, tmp_news_folder):
