@@ -51,8 +51,6 @@ def extract_links(content):
 
 
 def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, debug=True, sleep_time_every_ten_articles=0):
-    if limit > 500:
-        raise Exception('You are likely to be banned from Google if you set the limit too high.')
     num_articles_index = 0
     ua = UserAgent()
     result = []
