@@ -1,11 +1,14 @@
-SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS = 1
+import json
+from collections import namedtuple
+from pprint import pprint
 
-ARTICLE_COUNT_LIMIT_PER_KEYWORD = 300
 
-CLEAN_HTML_RATIO_LETTERS_LENGTH = 0.33
+def convert(d):
+    # dict -> namedtuple
+    return namedtuple('GenericDict', d.keys())(**d)
 
-GOOGLE_NEWS_URL = 'https://www.google.co.jp/search?q={}&hl=ja&source=lnt&tbs=cdr%3A1%2Ccd_min%3A{}%2Ccd_max%3A{}&tbm=nws&start={}'
 
-NUM_THREADS = 32
-
-MULTI_THREADING = True
+with open('conf.json') as data_file:
+    data = json.load(data_file)
+    pprint(data)
+    data = convert(data)

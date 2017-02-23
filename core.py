@@ -4,9 +4,10 @@ import errno
 import logging
 import os
 import pickle
+import random
 import re
 import time
-import random
+
 import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
@@ -16,6 +17,8 @@ from slugify import slugify
 from constants import *
 
 NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT = 0
+
+GOOGLE_NEWS_URL = 'https://www.google.co.jp/search?q={}&hl=ja&source=lnt&tbs=cdr%3A1%2Ccd_min%3A{}%2Ccd_max%3A{}&tbm=nws&start={}'
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -119,7 +122,7 @@ def run():
         generate_articles(keyword)
 
 
-def generate_articles(keyword, year_start=2010, year_end=2016, limit=ARTICLE_COUNT_LIMIT_PER_KEYWORD):
+def generate_articles(keyword, year_start=2010, year_end=2016, limit=data.ARTICLE_COUNT_LIMIT_PER_KEYWORD):
     tmp_news_folder = 'data/{}/news'.format(keyword)
     mkdir_p(tmp_news_folder)
 
@@ -137,9 +140,10 @@ def generate_articles(keyword, year_start=2010, year_end=2016, limit=ARTICLE_COU
                                 year_start=year_start,
                                 year_end=year_end,
                                 debug=True,
-                                sleep_time_every_ten_articles=SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS)
+                                sleep_time_every_ten_articles=data.SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS)
         pickle.dump(links, open(pickle_file, 'wb'))
-    retrieve_data_from_links(links, tmp_news_folder)
+    if int(data.RUN_POST_PROCESSING):
+        retrieve_data_from_links(links, tmp_news_folder)
 
 
 def retrieve_data_for_link(param):
@@ -171,9 +175,9 @@ def retrieve_data_for_link(param):
 
 
 def retrieve_data_from_links(full_links, tmp_news_folder):
-    if MULTI_THREADING:
+    if int(data.LINKS_POST_PROCESSING_MULTI_THREADING):
         inputs = [(full_links, tmp_news_folder) for full_links in full_links]
-        parallel_function(retrieve_data_for_link, inputs, NUM_THREADS)
+        parallel_function(retrieve_data_for_link, inputs, data.LINKS_POST_PROCESSING_NUM_THREADS)
     else:
         for full_link in full_links:
             retrieve_data_for_link((full_link, tmp_news_folder))
@@ -218,7 +222,8 @@ def clean_html_and_complete_title(html_page, google_article_title):
         text_list = list(filter(lambda x: word_to_ban not in x.lower(), text_list))
 
     text_list = [t for t in text_list if
-                 len(re.findall('[a-z]', t.lower())) / (len(t) + 1) < CLEAN_HTML_RATIO_LETTERS_LENGTH]
+                 len(re.findall('[a-z]', t.lower())) / (
+                     len(t) + 1) < data.LINKS_POST_PROCESSING_CLEAN_HTML_RATIO_LETTERS_LENGTH]
 
     text = ' '.join(text_list)
     text = text.replace('\n', ' ')
