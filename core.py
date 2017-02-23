@@ -73,6 +73,10 @@ def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, debug=Tru
                     'or you have been banned from Google. Retry tomorrow '
                     'or change of IP Address.')
 
+            if nb_links == 0:
+                print('No more news to read for keyword {}.'.format(keyword))
+                break
+
             for i in range(nb_links):
                 if debug:
                     cur_link = links[i]
