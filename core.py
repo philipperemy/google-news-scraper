@@ -1,11 +1,12 @@
 from __future__ import print_function
 
 import errno
+import logging
 import os
 import pickle
 import re
 import time
-
+import random
 import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
@@ -15,6 +16,8 @@ from slugify import slugify
 from constants import *
 
 NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT = 0
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def parallel_function(f, sequence, num_threads=None):
@@ -53,8 +56,8 @@ def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, debug=Tru
     while num_articles_index < limit:
         url = forge_url(keyword, num_articles_index, year_start, year_end)
         if debug:
-            print('For Google -> {}'.format(url))
-            print('Total number of calls to Google = {}'.format(NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT))
+            logging.debug('For Google -> {}'.format(url))
+            logging.debug('Total number of calls to Google = {}'.format(NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT))
         headers = {'User-Agent': ua.chrome}
         try:
             response = requests.get(url, headers=headers, timeout=20)
@@ -70,14 +73,14 @@ def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, debug=Tru
             for i in range(nb_links):
                 if debug:
                     cur_link = links[i]
-                    print('TITLE = {}, URL = {}'.format(cur_link[1], cur_link[0]))
+                    logging.debug('TITLE = {}, URL = {}'.format(cur_link[1], cur_link[0]))
             result.extend(links)
         except requests.exceptions.Timeout:
-            print('Google news TimeOut. Maybe the connection is too slow. Skipping.')
+            logging.debug('Google news TimeOut. Maybe the connection is too slow. Skipping.')
             pass
         num_articles_index += 10
         if debug and sleep_time_every_ten_articles != 0:
-            print('Program is going to sleep for {} seconds.'.format(sleep_time_every_ten_articles))
+            logging.debug('Program is going to sleep for {} seconds.'.format(sleep_time_every_ten_articles))
         time.sleep(sleep_time_every_ten_articles)
     return result
 
@@ -101,10 +104,10 @@ def get_keywords():
                 set([v.text for v in soup.find_all('td', {'class': 'devtableitem'}) if 'http' not in v.text])]
     assert len(keywords) > 0
 
-    # random.shuffle(keywords)
+    random.shuffle(keywords)
     for keyword in keywords:
         japanese_keyword = translate(keyword, 'ja')
-        print('[Google Translate] {} -> {}'.format(keyword, japanese_keyword))
+        logging.debug('[Google Translate] {} -> {}'.format(keyword, japanese_keyword))
         if re.search('[a-zA-Z]', japanese_keyword):  # we don't want that: Fed watch -> Fed時計
             continue
         yield japanese_keyword
@@ -112,7 +115,7 @@ def get_keywords():
 
 def run():
     for keyword in get_keywords():
-        print('KEYWORD = {}'.format(keyword))
+        logging.debug('KEYWORD = {}'.format(keyword))
         generate_articles(keyword)
 
 
@@ -125,9 +128,9 @@ def generate_articles(keyword, year_start=2010, year_end=2016, limit=ARTICLE_COU
 
     pickle_file = '{}/{}_{}_{}_links.pkl'.format(tmp_link_folder, keyword, year_start, year_end)
     if os.path.isfile(pickle_file):
-        print('Google news links for keyword [{}] have been fetched already.'.format(keyword))
+        logging.debug('Google news links for keyword [{}] have been fetched already.'.format(keyword))
         links = pickle.load(open(pickle_file, 'rb'))
-        print('Found {} links.'.format(len(links)))
+        logging.debug('Found {} links.'.format(len(links)))
     else:
         links = google_news_run(keyword=keyword,
                                 limit=limit,
@@ -140,14 +143,14 @@ def generate_articles(keyword, year_start=2010, year_end=2016, limit=ARTICLE_COU
 
 
 def retrieve_data_for_link(param):
-    print('retrieve_data_for_link - param = {}'.format(param))
+    logging.debug('retrieve_data_for_link - param = {}'.format(param))
     (full_link, tmp_news_folder) = param
     link = full_link[0]
     google_title = full_link[1]
     compliant_filename_for_link = slugify(link)
     max_len = 100
     if len(compliant_filename_for_link) > max_len:
-        print('max length exceeded for filename ({}). Truncating.'.format(compliant_filename_for_link))
+        logging.debug('max length exceeded for filename ({}). Truncating.'.format(compliant_filename_for_link))
         compliant_filename_for_link = compliant_filename_for_link[:max_len]
     pickle_file = '{}/{}.pkl'.format(tmp_news_folder, compliant_filename_for_link)
     already_fetched = os.path.isfile(pickle_file)
@@ -156,7 +159,7 @@ def retrieve_data_for_link(param):
             raw_text = download_html_from_link(link)
         except:
             raw_text = ''
-            print('ERROR could not download article with link {}'.format(link))
+            logging.debug('ERROR could not download article with link {}'.format(link))
         text, full_title = clean_html_and_complete_title(raw_text, google_title)
         text = re.sub('\s\s+', ' ', text)  # remove multiple spaces.
         article = {'link': link,
@@ -179,12 +182,12 @@ def retrieve_data_from_links(full_links, tmp_news_folder):
 def download_html_from_link(link, params=None, fail_on_error=True, debug=True):
     try:
         if debug:
-            print('Get -> {} '.format(link), end='')
+            logging.debug('Get -> {} '.format(link), end='')
         response = requests.get(link, params, timeout=20)
         if fail_on_error and response.status_code != 200:
             raise Exception('Response code is not [200]. Got: {}'.format(response.status_code))
         else:
-            print('[OK]')
+            logging.debug('[OK]')
         return response.content
     except:
         if fail_on_error:
@@ -221,5 +224,5 @@ def clean_html_and_complete_title(html_page, google_article_title):
     text = text.replace('\n', ' ')
     full_title = update_title(soup, google_article_title).strip()
     if full_title != google_article_title:
-        print('updated title: old is [{}], new is [{}]'.format(google_article_title, full_title))
+        logging.debug('updated title: old is [{}], new is [{}]'.format(google_article_title, full_title))
     return text, full_title
