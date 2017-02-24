@@ -35,7 +35,9 @@ sudo pip install . # will install it as a package
 
 Also make sure that:
 - you can run `expressvpn` in your terminal.
-- ExpressVPN is configured [https://www.expressvpn.com/setup](https://www.expressvpn.com/setup) and [https://www.expressvpn.com/support/vpn-setup/app-for-linux/#download](https://www.expressvpn.com/support/vpn-setup/app-for-linux/#download)
+- ExpressVPN is properly configured:
+    - [https://www.expressvpn.com/setup](https://www.expressvpn.com/setup) 
+    - [https://www.expressvpn.com/support/vpn-setup/app-for-linux/#download](https://www.expressvpn.com/support/vpn-setup/app-for-linux/#download)
 - you get `expressvpn-python (x.y)` where `x.y` is the version, when you run `pip list | grep "expressvpn-python"`
 
 Once you have all of that, simply run:
