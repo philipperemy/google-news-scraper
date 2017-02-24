@@ -1,5 +1,9 @@
 # Google News Scraper - Japanese only (for now)
 
+## How many articles can I fetch with this scraper?
+
+No upper bound of course but it should be in the range **`100,000 articles per day`** of full time scraping, when using a VPN.
+
 ## How to get started?
 
 ```
