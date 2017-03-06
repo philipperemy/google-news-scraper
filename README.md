@@ -19,7 +19,6 @@ python main_no_vpn.py
 - `RUN_POST_PROCESSING`: Post processing means opening the URL, download the raw HTML from the articles, clean this HTML and save them to files.
 - `LINKS_POST_PROCESSING_CLEAN_HTML_RATIO_LETTERS_LENGTH`: Technical parameter for the post processing. Apply to Japanese only. We are interesting in dropping the english sentences from the Japanese articles.
 - `LINKS_POST_PROCESSING_NUM_THREADS`: Number of threads to use when doing this post processing task.
-- `LINKS_POST_PROCESSING_MULTI_THREADING`: Enable/disable multithreading for for the postprocessing. 1 means multithreaded. 0 means no multithreading.
 
 ## VPN
 
