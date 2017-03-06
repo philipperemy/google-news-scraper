@@ -179,9 +179,10 @@ def retrieve_data_for_link(param):
 
 
 def retrieve_data_from_links(full_links, tmp_news_folder):
-    if int(data.LINKS_POST_PROCESSING_MULTI_THREADING):
+    num_threads = data.LINKS_POST_PROCESSING_NUM_THREADS
+    if num_threads > 1:
         inputs = [(full_links, tmp_news_folder) for full_links in full_links]
-        parallel_function(retrieve_data_for_link, inputs, data.LINKS_POST_PROCESSING_NUM_THREADS)
+        parallel_function(retrieve_data_for_link, inputs, num_threads)
     else:
         for full_link in full_links:
             retrieve_data_for_link((full_link, tmp_news_folder))
