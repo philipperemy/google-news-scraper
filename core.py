@@ -189,13 +189,12 @@ def retrieve_data_from_links(full_links, tmp_news_folder):
 
 def download_html_from_link(link, params=None, fail_on_error=True, debug=True):
     try:
-        if debug:
-            logging.debug('Get -> {} '.format(link), end='')
+        logging.debug('Get -> {} '.format(link))
         response = requests.get(link, params, timeout=20)
         if fail_on_error and response.status_code != 200:
             raise Exception('Response code is not [200]. Got: {}'.format(response.status_code))
         else:
-            logging.debug('[OK]')
+            logging.debug('Download successful [OK]')
         return response.content
     except:
         if fail_on_error:
@@ -204,23 +203,30 @@ def download_html_from_link(link, params=None, fail_on_error=True, debug=True):
 
 
 def update_title(soup, google_article_title):
+    fail_to_update = False
     if '...' not in google_article_title:
-        return google_article_title
+        # we did not fail because the google title was already valid.
+        return google_article_title, fail_to_update
     truncated_title = google_article_title[:-4]  # remove ' ...' at the end.
     title_list = [v.text for v in soup.find_all('h1') if len(v.text) > 0]
     for title in title_list:
         if truncated_title in title:
-            return title
-    return google_article_title
+            # we succeeded here because we found the original title
+            return title, fail_to_update
+    fail_to_update = True
+    return google_article_title, fail_to_update
 
 
 def complete_title(soup, google_article_title):
     # soup.contents (show without formatting).
-    full_title = update_title(soup, google_article_title).strip()
+    full_title, fail_to_update = update_title(soup, google_article_title)
     if full_title != google_article_title:
         logging.debug('Updated title: old is [{}], new is [{}]'.format(google_article_title, full_title))
     else:
-        logging.debug('Could not update title with Google truncated title trick.')
-        full_title = get_title(soup)
-        print('Found it anyway here [{}]'.format(full_title))
+        if fail_to_update:
+            logging.debug('Could not update title with Google truncated title trick.')
+            full_title = get_title(soup)
+            logging.debug('Found it anyway here [{}]'.format(full_title))
+        else:
+            logging.debug('Nothing to do for title [{}]'.format(full_title))
     return full_title

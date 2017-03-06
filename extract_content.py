@@ -5,7 +5,6 @@ from constants import data
 
 def get_content(soup):
     """Retrieves contents of the article"""
-    content = ''
     # heuristics
     div_tags = soup.find_all('div', id='articleContentBody')
     div_tags_2 = soup.find_all('div', class_='ArticleText')
