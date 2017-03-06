@@ -42,13 +42,12 @@ def forge_url(q, start, year_start, year_end):
 
 def extract_links(content):
     soup = BeautifulSoup(content, 'html.parser')  # _sQb top _vQb _mnc
-    tag_1 = 'l _HId'
-    links_1 = [(v.attrs['href'], v.text) for v in soup.find_all('a', {'class': tag_1})]
-
-    tag_2 = '_sQb'
-    links_2 = [(v.attrs['href'], v.text) for v in soup.find_all('a', {'class': tag_2})]
-
-    return list(set(links_1 + links_2))
+    links_list = [(v.attrs['href'], v.text) for v in soup.find_all('a', {'class': ['l _HId', '_sQb']})]
+    dates_list = [v.text for v in soup.find_all('span', {'class': ['f nsa _uQb', 'nsa _uQb f']})]
+    output = []
+    for (link, date) in zip(links_list, dates_list):
+        output.append((link[0], link[1], date))
+    return output
 
 
 def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, debug=True, sleep_time_every_ten_articles=0):
@@ -77,9 +76,8 @@ def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, debug=Tru
                 break
 
             for i in range(nb_links):
-                if debug:
-                    cur_link = links[i]
-                    logging.debug('TITLE = {}, URL = {}'.format(cur_link[1], cur_link[0]))
+                cur_link = links[i]
+                logging.debug('TITLE = {}, URL = {}, DATE = {}'.format(cur_link[1], cur_link[0], cur_link[2]))
             result.extend(links)
         except requests.exceptions.Timeout:
             logging.debug('Google news TimeOut. Maybe the connection is too slow. Skipping.')
@@ -154,6 +152,7 @@ def retrieve_data_for_link(param):
     (full_link, tmp_news_folder) = param
     link = full_link[0]
     google_title = full_link[1]
+    link_datetime = full_link[2]
     compliant_filename_for_link = slugify(link)
     max_len = 100
     if len(compliant_filename_for_link) > max_len:
@@ -170,6 +169,7 @@ def retrieve_data_for_link(param):
             article = {'link': link,
                        'title': full_title,
                        'content': content,
+                       'datetime': link_datetime
                        }
             pickle.dump(article, open(pickle_file, 'wb'))
         except Exception as e:
