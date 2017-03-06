@@ -230,4 +230,4 @@ def complete_title(soup, google_article_title):
             logging.debug('Found it anyway here [{}]'.format(full_title))
         else:
             logging.debug('Nothing to do for title [{}]'.format(full_title))
-    return full_title
+    return full_title.strip()

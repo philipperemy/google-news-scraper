@@ -3,6 +3,7 @@
 .DS_Store
 .idea
 
+nohup.out
 data/
 data*
 __pycache__/
