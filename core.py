@@ -15,6 +15,7 @@ from mtranslate import translate
 from slugify import slugify
 
 from constants import *
+from extract_content import get_content, get_title
 
 NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT = 0
 
@@ -162,18 +163,19 @@ def retrieve_data_for_link(param):
     already_fetched = os.path.isfile(pickle_file)
     if not already_fetched:
         try:
-            raw_text = download_html_from_link(link)
-        except:
-            raw_text = ''
-            logging.debug('ERROR could not download article with link {}'.format(link))
-        text, full_title = clean_html_and_complete_title(raw_text, google_title)
-        text = re.sub('\s\s+', ' ', text)  # remove multiple spaces.
-        article = {'link': link,
-                   'title': full_title,
-                   'text': text,
-                   'raw_text': raw_text,
-                   }
-        pickle.dump(article, open(pickle_file, 'wb'))
+            html = download_html_from_link(link)
+            soup = BeautifulSoup(html, 'html.parser')
+            content = get_content(soup)
+            full_title = complete_title(soup, google_title)
+            article = {'link': link,
+                       'title': full_title,
+                       'content': content,
+                       }
+            pickle.dump(article, open(pickle_file, 'wb'))
+        except Exception as e:
+            logging.error(e)
+            logging.error('ERROR - could not download article with link {}'.format(link))
+            pass
 
 
 def retrieve_data_from_links(full_links, tmp_news_folder):
@@ -212,24 +214,13 @@ def update_title(soup, google_article_title):
     return google_article_title
 
 
-def clean_html_and_complete_title(html_page, google_article_title):
-    if html_page is None:
-        return ''
-    soup = BeautifulSoup(html_page, 'html.parser')
+def complete_title(soup, google_article_title):
     # soup.contents (show without formatting).
-    text_list = [v.text for v in soup.find_all('p') if len(v.text) > 0]
-
-    words_to_bans = ['<', 'javascript']
-    for word_to_ban in words_to_bans:
-        text_list = list(filter(lambda x: word_to_ban not in x.lower(), text_list))
-
-    text_list = [t for t in text_list if
-                 len(re.findall('[a-z]', t.lower())) / (
-                     len(t) + 1) < data.LINKS_POST_PROCESSING_CLEAN_HTML_RATIO_LETTERS_LENGTH]
-
-    text = ' '.join(text_list)
-    text = text.replace('\n', ' ')
     full_title = update_title(soup, google_article_title).strip()
     if full_title != google_article_title:
-        logging.debug('updated title: old is [{}], new is [{}]'.format(google_article_title, full_title))
-    return text, full_title
+        logging.debug('Updated title: old is [{}], new is [{}]'.format(google_article_title, full_title))
+    else:
+        logging.debug('Could not update title with Google truncated title trick.')
+        full_title = get_title(soup)
+        print('Found it anyway here [{}]'.format(full_title))
+    return full_title
