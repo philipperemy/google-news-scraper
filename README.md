@@ -4,6 +4,13 @@
 
 No upper bound of course but it should be in the range **`100,000 articles per day`** of full time scraping, when using a VPN.
 
+One article consists in:
+- title
+- datetime
+- content (if `RUN_POST_PROCESSING` is set to 1)
+- URL
+
+
 ## How to get started?
 
 ```
