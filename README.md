@@ -1,15 +1,28 @@
 # Google News Scraper - Japanese only (for now)
 
+Each article scraped has the following fields:
+- title: Title of the article
+- datetime: Publication date
+- content: Full content (text format)
+- link: URL where the article was published
+- keyword: Google News keyword used to find this article
+
 ## How many articles can I fetch with this scraper?
 
-No upper bound of course but it should be in the range **`100,000 articles per day`** of full time scraping, when using a VPN.
+No upper bound of course but it should be in the range **`100,000 articles per day`** when scraping 24/7 with VPN enabled.
 
-One article consists in:
-- title
-- datetime
-- content (if `RUN_POST_PROCESSING` is set to 1)
-- URL
+## Output example
 
+The `content` was truncated for improving the readibility.
+```
+{
+    "content": "(本文中の野村証券 [...] 生命経済研の熊野英生氏は指摘。  記事の全文 \n保護主義を根拠とする円高説を信じ込むのは禁物であり、実際は米貿易赤字縮小と円安が進むかもしれないとＢＢＨの村田雅志氏は指摘。  記事の全文 \n",
+    "datetime": "2015/11/03",
+    "keyword": "米国の銀行業務",
+    "link": "http://jp.reuters.com/article/idJPL3N12Y5QX20151104",
+    "title": "再送-インタビュー：運用高度化、ＰＥやハイイールド債増やす＝長門・ゆうちょ銀社長"
+}
+```
 
 ## How to get started?
 
@@ -17,15 +30,15 @@ One article consists in:
 git clone git@github.com:philipperemy/google-news-scraper.git gns
 cd gns
 sudo pip install -r requirements.txt
-python main_no_vpn.py
+python main_no_vpn.py # for VPN support, scroll down!
 ```
 ## Configuration
 
-- `SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS`: Sleep time before two calls to Google News. On average 10 articles are fetched per call.
-- `ARTICLE_COUNT_LIMIT_PER_KEYWORD`: Maximum number of articles fetched for one keyword.
-- `RUN_POST_PROCESSING`: Post processing means opening the URL, download the raw HTML from the articles, clean this HTML and save them to files.
-- `LINKS_POST_PROCESSING_CLEAN_HTML_RATIO_LETTERS_LENGTH`: Technical parameter for the post processing. Apply to Japanese only. We are interesting in dropping the english sentences from the Japanese articles.
-- `LINKS_POST_PROCESSING_NUM_THREADS`: Number of threads to use when doing this post processing task.
+- `SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS`: Sleep time before two calls to Google News. On average 10 articles are fetched per call. Default value is 1 second.
+- `ARTICLE_COUNT_LIMIT_PER_KEYWORD`: Maximum number of articles fetched for one keyword. Default value is 300. I tried it up to 600 and it worked.
+- `RUN_POST_PROCESSING`: Post processing means opening the URL of the article and extracting the content. **For maximum efficiency, we first scrape all the available tuples (title, datetime, url) on Google.com. Then, from the collected URLs, we fetch the content. This two-step procedure is empirically more efficient.** Run first `RUN_POST_PROCESSING` with a value of 0. Then, run it a second time with `RUN_POST_PROCESSING` set to 1. All the Google data scraped is persisted so no problem!
+- `LINKS_POST_PROCESSING_CLEAN_HTML_RATIO_LETTERS_LENGTH`: Technical parameter for the post processing. Apply to Japanese only. We are interesting in dropping the english sentences from the Japanese articles. Default is 0.33.
+- `LINKS_POST_PROCESSING_NUM_THREADS`: Number of threads to use when doing this post processing task. Default is 8.
 
 ## VPN
 
