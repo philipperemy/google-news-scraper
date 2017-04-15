@@ -1,19 +1,26 @@
 # Google News Scraper - Japanese only (for now)
 
-Each article scraped has the following fields:
-- title: Title of the article
-- datetime: Publication date
-- content: Full content (text format)
-- link: URL where the article was published
-- keyword: Google News keyword used to find this article
+Each scraped article has the following fields:
+- **title**: Title of the article
+- **datetime**: Publication date
+- **content**: Full content (text format)
+- **link**: URL where the article was published
+- **keyword**: Google News keyword used to find this article
 
 ## How many articles can I fetch with this scraper?
 
 No upper bound of course but it should be in the range **`100,000 articles per day`** when scraping 24/7 with VPN enabled.
 
+## How to get started?
+```
+git clone git@github.com:philipperemy/google-news-scraper.git gns
+cd gns
+sudo pip install -r requirements.txt
+python main_no_vpn.py # for VPN support, scroll down!
+```
+
 ## Output example
 
-The `content` was truncated for improving the readibility.
 ```
 {
     "content": "(本文中の野村証券 [...] 生命経済研の熊野英生氏は指摘。  記事の全文 \n保護主義を根拠とする円高説を信じ込むのは禁物であり、実際は米貿易赤字縮小と円安が進むかもしれないとＢＢＨの村田雅志氏は指摘。  記事の全文 \n",
@@ -23,17 +30,9 @@ The `content` was truncated for improving the readibility.
     "title": "再送-インタビュー：運用高度化、ＰＥやハイイールド債増やす＝長門・ゆうちょ銀社長"
 }
 ```
+The field `content` was truncated for improving the readibility.
 
-## How to get started?
-
-```
-git clone git@github.com:philipperemy/google-news-scraper.git gns
-cd gns
-sudo pip install -r requirements.txt
-python main_no_vpn.py # for VPN support, scroll down!
-```
 ## Configuration
-
 - `SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS`: Sleep time before two calls to Google News. On average 10 articles are fetched per call. Default value is 1 second.
 - `ARTICLE_COUNT_LIMIT_PER_KEYWORD`: Maximum number of articles fetched for one keyword. Default value is 300. I tried it up to 600 and it worked.
 - `RUN_POST_PROCESSING`: Post processing means opening the URL of the article and extracting the content. **For maximum efficiency, we first scrape all the available tuples (title, datetime, url) on Google.com. Then, from the collected URLs, we fetch the content. This two-step procedure is empirically more efficient.** Run first `RUN_POST_PROCESSING` with a value of 0. Then, run it a second time with `RUN_POST_PROCESSING` set to 1. All the Google data scraped is persisted so no problem!
@@ -41,7 +40,6 @@ python main_no_vpn.py # for VPN support, scroll down!
 - `LINKS_POST_PROCESSING_NUM_THREADS`: Number of threads to use when doing this post processing task. Default is 8.
 
 ## VPN
-
 Scraping Google News usually results in a ban for a few hours. Using a VPN with dynamic IP fetching is a way to overcome this problem.
 
 In my case, I subscribed to this VPN: [https://www.expressvpn.com/](https://www.expressvpn.com/).
@@ -71,3 +69,7 @@ python main.py
 
 Every time the script detects that Google has banned you, it will request the VPN to get a fresh new IP and will resume.
 
+
+## Questions/Answer
+- Why didn't you use the RSS feed provided by Google News? It does not exist for Japanese!
+- What is the best way to use this script? If you want to scrape a lot of data, I highly recommend you to subscribe to a VPN, preferably ExpressVPN. Also, it's much more efficient to run the script two times. The first time is for fetching all the article links and metadata from Google News. The second time is to actually retrieve all the contents behind the URLs. Refer to the parameter `RUN_POST_PROCESSING` in the Section **Configuration**.
