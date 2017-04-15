@@ -43,7 +43,7 @@ python main_no_vpn.py # for VPN support, scroll down!
     "title": "アルゼンチンの通貨ペソ、大幅下落 対ドルで36％安"
 }
 ```
-The field `content` was truncated for improving the readibility.
+**NOTE**: The field `content` was truncated for improving the readibility.
 
 ## Configuration
 - `SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS`: Sleep time before two calls to Google News. On average 10 articles are fetched per call. Default value is 1 second.
@@ -86,7 +86,6 @@ python main.py
 
 Every time the script detects that Google has banned you, it will request the VPN to get a fresh new IP and will resume.
 
-
-## Questions/Answer
+## Questions/Answers
 - Why didn't you use the RSS feed provided by Google News? It does not exist for Japanese!
-- What is the best way to use this script? If you want to scrape a lot of data, I highly recommend you to subscribe to a VPN, preferably ExpressVPN. Also, it's much more efficient to run the script two times. The first time is for fetching all the article links and metadata from Google News. The second time is to actually retrieve all the contents behind the URLs. Refer to the parameter `RUN_POST_PROCESSING` in the Section **Configuration**.
+- What is the best way to use this scraper? If you want to scrape a lot of data, I highly recommend you to subscribe to a VPN, preferably ExpressVPN (I implemented the VPN wrapper and the interaction with this scraper).
