@@ -21,7 +21,7 @@ python main_no_vpn.py # for VPN support, scroll down!
 
 ## Output example
 
-`Article `
+`Article 1`
 ```
 {
     "content": "(本文中の野村証券 [...] 生命経済研の熊野英生氏は指摘。  記事の全文 \n保護主義を根拠とする円高説を信じ込むのは禁物であり、実際は米貿易赤字縮小と円安が進むかもしれないとＢＢＨの村田雅志氏は指摘。  記事の全文 \n",
@@ -77,6 +77,10 @@ Also make sure that:
 Once you have all of that, simply run:
 
 ```
+# I advise you to set RUN_POST_PROCESSING=0 in conf.json, run main.py. 
+# It will gather all the Google data in data/. Then stop the script.
+# Change the parameter RUN_POST_PROCESSING=1 and run it again.
+# The script will read from data/ and start fetching the content of the links.
 python main.py
 ```
 
