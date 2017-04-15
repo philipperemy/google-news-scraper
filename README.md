@@ -21,6 +21,7 @@ python main_no_vpn.py # for VPN support, scroll down!
 
 ## Output example
 
+`Article `
 ```
 {
     "content": "(本文中の野村証券 [...] 生命経済研の熊野英生氏は指摘。  記事の全文 \n保護主義を根拠とする円高説を信じ込むのは禁物であり、実際は米貿易赤字縮小と円安が進むかもしれないとＢＢＨの村田雅志氏は指摘。  記事の全文 \n",
@@ -28,6 +29,18 @@ python main_no_vpn.py # for VPN support, scroll down!
     "keyword": "米国の銀行業務",
     "link": "http://jp.reuters.com/article/idJPL3N12Y5QX20151104",
     "title": "再送-インタビュー：運用高度化、ＰＥやハイイールド債増やす＝長門・ゆうちょ銀社長"
+}
+```
+
+`Article 2`
+
+```
+{
+    "content": "記事保存 有料会員の方のみご利用になれます。[...] 詳しくは、こちら 電子版トップ速報トップ アルゼンチン、ドル、通貨ペソ、外貨取引 来春の新入社員を募集　記者など４職種 【週末新紙面】宅配＋電子版お試し実施中！ 天気 プレスリリース検索 アカウント一覧 訂正・おわび",
+    "datetime": "2015/12/17",
+    "keyword": "アルゼンチン",
+    "link": "http://www.nikkei.com/article/DGXLASGM18H1B_Y5A211C1EAF000/",
+    "title": "アルゼンチンの通貨ペソ、大幅下落 対ドルで36％安"
 }
 ```
 The field `content` was truncated for improving the readibility.
