@@ -3,10 +3,10 @@ from __future__ import print_function
 import errno
 import logging
 import os
-import pickle
 import random
 import re
 import time
+from datetime import datetime
 
 import requests
 from bs4 import BeautifulSoup
@@ -17,11 +17,7 @@ from slugify import slugify
 from constants import *
 from extract_content import get_content, get_title
 
-NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT = 0
-
-GOOGLE_NEWS_URL = 'https://www.google.co.jp/search?q={}&hl=ja&source=lnt&tbs=cdr%3A1%2Ccd_min%3A{}%2Ccd_max%3A{}&tbm=nws&start={}'
-
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def parallel_function(f, sequence, num_threads=None):
@@ -34,31 +30,42 @@ def parallel_function(f, sequence, num_threads=None):
     return cleaned
 
 
-def forge_url(q, start, year_start, year_end):
-    global NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT
-    NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT += 1
-    return GOOGLE_NEWS_URL.format(q.replace(' ', '+'), str(year_start), str(year_end), start)
+class UrlForge:
+
+    def __init__(self):
+        self.num_calls = 0
+        self.google_news_url = 'https://www.google.co.jp/search?q={}&hl=ja&source=lnt&' \
+                               'tbs=cdr%3A1%2Ccd_min%3A{}%2Ccd_max%3A{}&tbm=nws&start={}'
+
+    def forge(self, q, start, year_start, year_end):
+        self.num_calls += 1
+        return self.google_news_url.format(q.replace(' ', '+'), str(year_start), str(year_end), start)
 
 
 def extract_links(content):
-    soup = BeautifulSoup(content, 'html.parser')  # _sQb top _vQb _mnc
-    links_list = [(v.attrs['href'], v.text) for v in soup.find_all('a', {'class': ['l _HId', '_sQb']})]
-    dates_list = [v.text for v in soup.find_all('span', {'class': ['f nsa _uQb', 'nsa _uQb f']})]
+    soup = BeautifulSoup(content.decode('utf8'), 'html.parser')  # _sQb top _vQb _mnc
+    links_list = [(v.attrs['href'], v.text) for v in soup.find_all('a', {'class': ['l lLrAF']})]
+    dates_list = [a.find('span', {'class': ['f nsa fwzPFf']}).text for a in soup.find_all('div', {'class': 'slp'})]
+    assert len(links_list) == len(dates_list)
     output = []
     for (link, date) in zip(links_list, dates_list):
-        output.append((link[0], link[1], date))
+        output.append({
+            'link': link[0],
+            'title': link[1],
+            'date': date
+        })
     return output
 
 
-def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, debug=True, sleep_time_every_ten_articles=0):
+def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, sleep_time_every_ten_articles=0):
     num_articles_index = 0
     ua = UserAgent()
+    uf = UrlForge()
     result = []
     while num_articles_index < limit:
-        url = forge_url(keyword, num_articles_index, year_start, year_end)
-        if debug:
-            logging.debug('For Google -> {}'.format(url))
-            logging.debug('Total number of calls to Google = {}'.format(NUMBER_OF_CALLS_TO_GOOGLE_NEWS_ENDPOINT))
+        url = uf.forge(keyword, num_articles_index, year_start, year_end)
+        logging.info('[Google News] Total num calls = %s (for keyword).' % uf.num_calls)
+        logging.info('[Google News] %s.' % url)
         headers = {'User-Agent': ua.chrome}
         try:
             response = requests.get(url, headers=headers, timeout=20)
@@ -77,14 +84,13 @@ def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, debug=Tru
 
             for i in range(nb_links):
                 cur_link = links[i]
-                logging.debug('TITLE = {}, URL = {}, DATE = {}'.format(cur_link[1], cur_link[0], cur_link[2]))
+                logging.info('|- {} ({})'.format(cur_link['title'], cur_link['date']))
             result.extend(links)
         except requests.exceptions.Timeout:
-            logging.debug('Google news TimeOut. Maybe the connection is too slow. Skipping.')
+            logging.warning('Google news TimeOut. Maybe the connection is too slow. Skipping.')
             pass
         num_articles_index += 10
-        if debug and sleep_time_every_ten_articles != 0:
-            logging.debug('Program is going to sleep for {} seconds.'.format(sleep_time_every_ten_articles))
+        logging.info('Program is going to sleep for {} seconds.'.format(sleep_time_every_ten_articles))
         time.sleep(sleep_time_every_ten_articles)
     return result
 
@@ -111,67 +117,72 @@ def get_keywords():
     random.shuffle(keywords)
     for keyword in keywords:
         japanese_keyword = translate(keyword, 'ja')
-        logging.debug('[Google Translate] {} -> {}'.format(keyword, japanese_keyword))
+        logging.info('[Google Translate] {} -> {}'.format(keyword, japanese_keyword))
         if re.search('[a-zA-Z]', japanese_keyword):  # we don't want that: Fed watch -> Fed時計
             continue
         yield japanese_keyword
 
 
-def run():
-    for keyword in get_keywords():
-        logging.debug('KEYWORD = {}'.format(keyword))
-        generate_articles(keyword)
+def run(keywords=None):
+    if keywords is None:
+        keywords = get_keywords()
+    for keyword in keywords:
+        logging.info('[Google News] -> FETCHING NEWS FOR KEYWORD [{}].'.format(keyword))
+        generate_articles(keyword, year_end=datetime.now().year)
 
 
-def generate_articles(keyword, year_start=2010, year_end=2016, limit=data.ARTICLE_COUNT_LIMIT_PER_KEYWORD):
+def generate_articles(keyword, year_start=2010, year_end=2019, limit=data.ARTICLE_COUNT_LIMIT_PER_KEYWORD):
     tmp_news_folder = 'data/{}/news'.format(keyword)
     mkdir_p(tmp_news_folder)
 
     tmp_link_folder = 'data/{}/links'.format(keyword)
     mkdir_p(tmp_link_folder)
 
-    pickle_file = '{}/{}_{}_{}_links.pkl'.format(tmp_link_folder, keyword, year_start, year_end)
-    if os.path.isfile(pickle_file):
-        logging.debug('Google news links for keyword [{}] have been fetched already.'.format(keyword))
-        links = pickle.load(open(pickle_file, 'rb'))
-        logging.debug('Found {} links.'.format(len(links)))
+    json_file = '{}/{}_{}_{}_links.json'.format(tmp_link_folder, keyword, year_start, year_end)
+    if os.path.isfile(json_file):
+        logging.info('Google news links for keyword [{}] have been fetched already.'.format(keyword))
+        with open(json_file, 'r', encoding='utf8') as r:
+            links = json.load(fp=r)
+        logging.info('Found {} links.'.format(len(links)))
     else:
         links = google_news_run(keyword=keyword,
                                 limit=limit,
                                 year_start=year_start,
                                 year_end=year_end,
-                                debug=True,
                                 sleep_time_every_ten_articles=data.SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS)
-        pickle.dump(links, open(pickle_file, 'wb'))
+        with open(json_file, 'w', encoding='utf8') as w:
+            json.dump(fp=w, obj=links)
     if int(data.RUN_POST_PROCESSING):
         retrieve_data_from_links(links, tmp_news_folder)
 
 
 def retrieve_data_for_link(param):
-    logging.debug('retrieve_data_for_link - param = {}'.format(param))
+    logging.info('retrieve_data_for_link - param = {}'.format(param))
     (full_link, tmp_news_folder) = param
-    link = full_link[0]
-    google_title = full_link[1]
-    link_datetime = full_link[2]
+    link = full_link['link']
+    google_title = full_link['title']
+    link_datetime = full_link['date']
     compliant_filename_for_link = slugify(link)
     max_len = 100
     if len(compliant_filename_for_link) > max_len:
-        logging.debug('max length exceeded for filename ({}). Truncating.'.format(compliant_filename_for_link))
+        logging.info('max length exceeded for filename ({}). Truncating.'.format(compliant_filename_for_link))
         compliant_filename_for_link = compliant_filename_for_link[:max_len]
-    pickle_file = '{}/{}.pkl'.format(tmp_news_folder, compliant_filename_for_link)
-    already_fetched = os.path.isfile(pickle_file)
+    json_file = '{}/{}.json'.format(tmp_news_folder, compliant_filename_for_link)
+    already_fetched = os.path.isfile(json_file)
     if not already_fetched:
         try:
             html = download_html_from_link(link)
             soup = BeautifulSoup(html, 'html.parser')
             content = get_content(soup)
             full_title = complete_title(soup, google_title)
-            article = {'link': link,
-                       'title': full_title,
-                       'content': content,
-                       'datetime': link_datetime
-                       }
-            pickle.dump(article, open(pickle_file, 'wb'))
+            article = {
+                'link': link,
+                'title': full_title,
+                'content': content,
+                'date': link_datetime
+            }
+            with open(json_file, 'w', encoding='utf8') as w:
+                json.dump(fp=w, obj=article)
         except Exception as e:
             logging.error(e)
             logging.error('ERROR - could not download article with link {}'.format(link))
@@ -188,14 +199,14 @@ def retrieve_data_from_links(full_links, tmp_news_folder):
             retrieve_data_for_link((full_link, tmp_news_folder))
 
 
-def download_html_from_link(link, params=None, fail_on_error=True, debug=True):
+def download_html_from_link(link, params=None, fail_on_error=True):
     try:
-        logging.debug('Get -> {} '.format(link))
+        logging.info('Get -> {} '.format(link))
         response = requests.get(link, params, timeout=20)
         if fail_on_error and response.status_code != 200:
             raise Exception('Response code is not [200]. Got: {}'.format(response.status_code))
         else:
-            logging.debug('Download successful [OK]')
+            logging.info('Download successful [OK]')
         return response.content
     except:
         if fail_on_error:
