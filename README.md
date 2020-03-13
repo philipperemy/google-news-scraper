@@ -1,6 +1,6 @@
 # Google News Scraper - Japanese only
 
-For english articles, Google has a RSS feed that you can directly use: https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en
+For english articles, Google has a RSS feed that you can directly use: https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en.
 
 Each scraped article has the following fields:
 - **title**: Title of the article
