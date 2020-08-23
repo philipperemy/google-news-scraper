@@ -18,7 +18,7 @@ No upper bound of course but it should be in the range **`100,000 articles per d
 git clone git@github.com:philipperemy/google-news-scraper.git && cd google-news-scraper
 virtualenv -p python3 venv && source venv/bin/activate # optional but recommended!
 pip install -r requirements.txt
-python main_no_vpn.py --keywords hello,toto --language ja # for VPN support, scroll down!
+python main_no_vpn.py --keywords hello,toto --language ja  # for VPN support, scroll down!
 ```
 
 ## Output example
@@ -45,17 +45,7 @@ python main_no_vpn.py --keywords hello,toto --language ja # for VPN support, scr
     "title": "アルゼンチンの通貨ペソ、大幅下落 対ドルで36％安"
 }
 ```
-**NOTE**: The field `content` was truncated for improving the readibility.
-
-## Configuration
-
-In `conf.json`:
-
-- `SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS`: Sleep time before two calls to Google News. On average 10 articles are fetched per call. Default value is 1 second.
-- `ARTICLE_COUNT_LIMIT_PER_KEYWORD`: Maximum number of articles fetched for one keyword. Default value is 300. I tried it up to 600 and it worked.
-- `RUN_POST_PROCESSING`: Post processing means opening the URL of the article and extracting the content. **For maximum efficiency, we first scrape all the available tuples (title, datetime, url) on Google.com. Then, from the collected URLs, we fetch the content. This two-step procedure is empirically more efficient.** Run first `RUN_POST_PROCESSING` with a value of `false`. Then, run it a second time with `RUN_POST_PROCESSING` set to `true`. All the Google data scraped is persisted so no problem!
-- `LINKS_POST_PROCESSING_CLEAN_HTML_RATIO_LETTERS_LENGTH`: Technical parameter for the post processing. Apply to Japanese only. We are interesting in dropping the english sentences from the Japanese articles. Default is 0.33.
-- `LINKS_POST_PROCESSING_NUM_THREADS`: Number of threads to use when doing this post processing task. Default is 8.
+**NOTE**: The field `content` was truncated in the README.
 
 ## VPN
 Scraping Google News usually results in a ban for a few hours. Using a VPN with dynamic IP fetching is a way to overcome this problem.
