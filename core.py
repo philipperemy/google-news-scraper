@@ -258,8 +258,8 @@ def complete_title(soup, google_article_title):
     else:
         if fail_to_update:
             logger.debug('Could not update title with Google truncated title trick.')
-            full_title = get_title(soup)
-            logger.debug('Found it anyway here [{}]'.format(full_title))
+            # full_title = get_title(soup)
+            # logger.info('Found it anyway here [{}]'.format(full_title))
         else:
             logger.debug('Nothing to do for title [{}]'.format(full_title))
     return full_title.strip()
