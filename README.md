@@ -1,11 +1,11 @@
-# Google News Scraper - Japanese only
+# Google News Scraper - Japanese and Chinese supported
 
-For english articles, Google has a RSS feed that you can directly use: https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en.
+For English articles, Google has a RSS feed that you can directly use. [Click here for English](https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en).
 
 Each scraped article has the following fields:
 - **title**: Title of the article
 - **datetime**: Publication date
-- **content**: Full content (text format)
+- **content**: Full content (text format) - best effort
 - **link**: URL where the article was published
 - **keyword**: Google News keyword used to find this article
 
@@ -60,16 +60,6 @@ Also make sure that:
     - [https://www.expressvpn.com/setup](https://www.expressvpn.com/setup) 
     - [https://www.expressvpn.com/support/vpn-setup/app-for-linux/#download](https://www.expressvpn.com/support/vpn-setup/app-for-linux/#download)
 - you get `expressvpn-python (x.y)` where `x.y` is the version, when you run `pip list | grep "expressvpn-python"`
-
-Once you have all of that, simply run:
-
-```
-# I advise you to set RUN_POST_PROCESSING=false in conf.json, run main.py. 
-# It will gather all the Google data in data/. Then stop the script.
-# Change the parameter RUN_POST_PROCESSING=true and run it again.
-# The script will read from data/ and start fetching the content of the links.
-python main.py
-```
 
 Every time the script detects that Google has banned you, it will request the VPN to get a fresh new IP and will resume.
 
