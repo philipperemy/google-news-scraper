@@ -1,5 +1,9 @@
-from core import run
+import logging
+import sys
+
 from expressvpn import wrapper
+
+from core import run
 
 
 def get_new_ip():
@@ -14,6 +18,7 @@ def get_new_ip():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stdout)
     # https://news.google.co.jp
     # https://news.google.com/?output=rss&hl=fr
     # RSS Feed does not work for Japanese language.
