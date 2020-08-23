@@ -14,10 +14,10 @@ Each scraped article has the following fields:
 No upper bound of course but it should be in the range **`100,000 articles per day`** when scraping 24/7 with VPN enabled.
 
 ## How to get started?
-```
-git clone git@github.com:philipperemy/google-news-scraper.git gns
-cd gns
-sudo pip install -r requirements.txt
+```bash
+git clone git@github.com:philipperemy/google-news-scraper.git && cd google-news-scraper
+virtualenv -p python3 venv && source venv/bin/activate # optional but recommended!
+pip install -r requirements.txt
 python main_no_vpn.py # for VPN support, scroll down!
 ```
 
