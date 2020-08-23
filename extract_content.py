@@ -1,7 +1,5 @@
 import re
 
-from constants import data
-
 
 def get_content(soup):
     """Retrieves contents of the article"""
@@ -29,7 +27,7 @@ def get_content(soup):
         return collect_content(div4)
     elif div5:
         return collect_content(div5)
-    elif div_tags_l:
+    elif div_tags_l and len(collect_content(div_tags_l)) > 0:
         return collect_content(div_tags_l)
     elif div6:
         return collect_content(div6)
@@ -43,9 +41,10 @@ def get_content(soup):
         words_to_bans = ['<', 'javascript']
         for word_to_ban in words_to_bans:
             c_list = list(filter(lambda x: word_to_ban not in x.lower(), c_list))
+        clean_html_ratio_letters_length = 0.33
         c_list = [t for t in c_list if
                   len(re.findall('[a-z]', t.lower())) / (
-                      len(t) + 1) < data.LINKS_POST_PROCESSING_CLEAN_HTML_RATIO_LETTERS_LENGTH]
+                          len(t) + 1) < clean_html_ratio_letters_length]
         content = ' '.join(c_list)
         content = content.replace('\n', ' ')
         content = re.sub('\s\s+', ' ', content)  # remove multiple spaces.
