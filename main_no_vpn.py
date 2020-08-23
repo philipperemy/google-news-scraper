@@ -1,8 +1,11 @@
+import logging
 import sys
 
 from core import run
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stdout)
+
     # https://news.google.co.jp
     # https://news.google.com/?output=rss&hl=fr
     # RSS Feed does not work for Japanese language.

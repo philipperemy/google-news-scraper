@@ -17,7 +17,7 @@ from slugify import slugify
 from constants import *
 from extract_content import get_content, get_title
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 def parallel_function(f, sequence, num_threads=None):
@@ -30,42 +30,38 @@ def parallel_function(f, sequence, num_threads=None):
     return cleaned
 
 
-class UrlForge:
+class URL:
 
     def __init__(self):
         self.num_calls = 0
         self.google_news_url = 'https://www.google.co.jp/search?q={}&hl=ja&source=lnt&' \
                                'tbs=cdr%3A1%2Ccd_min%3A{}%2Ccd_max%3A{}&tbm=nws&start={}'
 
-    def forge(self, q, start, year_start, year_end):
+    def create(self, q, start, year_start, year_end):
         self.num_calls += 1
         return self.google_news_url.format(q.replace(' ', '+'), str(year_start), str(year_end), start)
 
 
 def extract_links(content):
-    soup = BeautifulSoup(content.decode('utf8'), 'html.parser')  # _sQb top _vQb _mnc
-    links_list = [(v.attrs['href'], v.text) for v in soup.find_all('a', {'class': ['l lLrAF']})]
-    dates_list = [a.find('span', {'class': ['f nsa fwzPFf']}).text for a in soup.find_all('div', {'class': 'slp'})]
+    soup = BeautifulSoup(content.decode('utf8'), 'html.parser')
+    blocks = [a for a in soup.find_all('div', {'class': ['dbsr']})]
+    links_list = [(b.find('a').attrs['href'], b.find('div', {'role': 'heading'}).text) for b in blocks]
+    dates_list = [b.find('span', {'class': 'WG9SHc'}).text for b in blocks]
     assert len(links_list) == len(dates_list)
-    output = []
-    for (link, date) in zip(links_list, dates_list):
-        output.append({
-            'link': link[0],
-            'title': link[1],
-            'date': date
-        })
+    output = [{'link': l[0], 'title': l[1], 'date': d} for (l, d) in zip(links_list, dates_list)]
     return output
 
 
 def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, sleep_time_every_ten_articles=0):
     num_articles_index = 0
     ua = UserAgent()
-    uf = UrlForge()
+    uf = URL()
     result = []
     while num_articles_index < limit:
-        url = uf.forge(keyword, num_articles_index, year_start, year_end)
-        logging.info('[Google News] Total num calls = %s (for keyword).' % uf.num_calls)
-        logging.info('[Google News] %s.' % url)
+        url = uf.create(keyword, num_articles_index, year_start, year_end)
+        logger.info('[Google News] Fetched %s articles for keyword [%s]. Limit is %s.' %
+                    (num_articles_index, keyword, limit))
+        logger.debug('[Google News] %s.' % url)
         headers = {'User-Agent': ua.chrome}
         try:
             response = requests.get(url, headers=headers, timeout=20)
@@ -84,13 +80,13 @@ def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, sleep_tim
 
             for i in range(nb_links):
                 cur_link = links[i]
-                logging.info('|- {} ({})'.format(cur_link['title'], cur_link['date']))
+                logger.debug('|- {} ({})'.format(cur_link['title'], cur_link['date']))
             result.extend(links)
         except requests.exceptions.Timeout:
-            logging.warning('Google news TimeOut. Maybe the connection is too slow. Skipping.')
+            logger.warning('Google news TimeOut. Maybe the connection is too slow. Skipping.')
             pass
         num_articles_index += 10
-        logging.info('Program is going to sleep for {} seconds.'.format(sleep_time_every_ten_articles))
+        logger.debug('Program is going to sleep for {} seconds.'.format(sleep_time_every_ten_articles))
         time.sleep(sleep_time_every_ten_articles)
     return result
 
@@ -106,28 +102,32 @@ def mkdir_p(path):
 
 
 def get_keywords():
-    response = requests.get('http://www.generalecommerce.com/clients/broadcastnews_tv/category_list_js.html',
-                            timeout=20)
+    keyword_url = 'http://www.generalecommerce.com/clients/broadcastnews_tv/category_list_js.html'
+    logger.info('No keywords specified. Will randomly select some keywords from %s.' % keyword_url)
+    response = requests.get(keyword_url, timeout=20)
     assert response.status_code == 200
     soup = BeautifulSoup(response.content, 'html.parser')
-    keywords = [l.replace('news', '') for l in
+    keywords = [l.replace('news', '').strip() for l in
                 set([v.text for v in soup.find_all('td', {'class': 'devtableitem'}) if 'http' not in v.text])]
     assert len(keywords) > 0
 
+    logger.info('Found %s keywords.' % len(keywords))
     random.shuffle(keywords)
     for keyword in keywords:
         japanese_keyword = translate(keyword, 'ja')
-        logging.info('[Google Translate] {} -> {}'.format(keyword, japanese_keyword))
+        logger.info('[Google Translate] {} -> {}'.format(keyword, japanese_keyword))
         if re.search('[a-zA-Z]', japanese_keyword):  # we don't want that: Fed watch -> Fed時計
+            logger.info('Discarding keyword.')
             continue
         yield japanese_keyword
 
 
 def run(keywords=None):
+    logger.info('[Google News] Output is in data/')
     if keywords is None:
         keywords = get_keywords()
     for keyword in keywords:
-        logging.info('[Google News] -> FETCHING NEWS FOR KEYWORD [{}].'.format(keyword))
+        logger.info('[Google News] -> FETCHING NEWS FOR KEYWORD [{}].'.format(keyword))
         generate_articles(keyword, year_end=datetime.now().year)
 
 
@@ -140,10 +140,10 @@ def generate_articles(keyword, year_start=2010, year_end=2019, limit=data.ARTICL
 
     json_file = '{}/{}_{}_{}_links.json'.format(tmp_link_folder, keyword, year_start, year_end)
     if os.path.isfile(json_file):
-        logging.info('Google news links for keyword [{}] have been fetched already.'.format(keyword))
-        with open(json_file, 'r', encoding='utf8') as r:
+        logger.info('Google news links for keyword [{}] have been fetched already.'.format(keyword))
+        with open(json_file, encoding='utf8') as r:
             links = json.load(fp=r)
-        logging.info('Found {} links.'.format(len(links)))
+        logger.info('Found {} links.'.format(len(links)))
     else:
         links = google_news_run(keyword=keyword,
                                 limit=limit,
@@ -151,13 +151,13 @@ def generate_articles(keyword, year_start=2010, year_end=2019, limit=data.ARTICL
                                 year_end=year_end,
                                 sleep_time_every_ten_articles=data.SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS)
         with open(json_file, 'w', encoding='utf8') as w:
-            json.dump(fp=w, obj=links)
+            json.dump(fp=w, obj=links, indent=2, ensure_ascii=False)
     if int(data.RUN_POST_PROCESSING):
         retrieve_data_from_links(links, tmp_news_folder)
 
 
 def retrieve_data_for_link(param):
-    logging.info('retrieve_data_for_link - param = {}'.format(param))
+    logger.info('retrieve_data_for_link - param = {}'.format(param))
     (full_link, tmp_news_folder) = param
     link = full_link['link']
     google_title = full_link['title']
@@ -165,7 +165,7 @@ def retrieve_data_for_link(param):
     compliant_filename_for_link = slugify(link)
     max_len = 100
     if len(compliant_filename_for_link) > max_len:
-        logging.info('max length exceeded for filename ({}). Truncating.'.format(compliant_filename_for_link))
+        logger.info('max length exceeded for filename ({}). Truncating.'.format(compliant_filename_for_link))
         compliant_filename_for_link = compliant_filename_for_link[:max_len]
     json_file = '{}/{}.json'.format(tmp_news_folder, compliant_filename_for_link)
     already_fetched = os.path.isfile(json_file)
@@ -181,11 +181,12 @@ def retrieve_data_for_link(param):
                 'content': content,
                 'date': link_datetime
             }
+            logger.info(f'Dumping progress to %s.' % json_file)
             with open(json_file, 'w', encoding='utf8') as w:
                 json.dump(fp=w, obj=article)
         except Exception as e:
-            logging.error(e)
-            logging.error('ERROR - could not download article with link {}'.format(link))
+            logger.error(e)
+            logger.error('ERROR - could not download article with link {}'.format(link))
             pass
 
 
@@ -201,12 +202,12 @@ def retrieve_data_from_links(full_links, tmp_news_folder):
 
 def download_html_from_link(link, params=None, fail_on_error=True):
     try:
-        logging.info('Get -> {} '.format(link))
+        logger.info('Get -> {} '.format(link))
         response = requests.get(link, params, timeout=20)
         if fail_on_error and response.status_code != 200:
             raise Exception('Response code is not [200]. Got: {}'.format(response.status_code))
         else:
-            logging.info('Download successful [OK]')
+            logger.info('Download successful [OK]')
         return response.content
     except:
         if fail_on_error:
@@ -233,12 +234,12 @@ def complete_title(soup, google_article_title):
     # soup.contents (show without formatting).
     full_title, fail_to_update = update_title(soup, google_article_title)
     if full_title != google_article_title:
-        logging.debug('Updated title: old is [{}], new is [{}]'.format(google_article_title, full_title))
+        logger.debug('Updated title: old is [{}], new is [{}]'.format(google_article_title, full_title))
     else:
         if fail_to_update:
-            logging.debug('Could not update title with Google truncated title trick.')
+            logger.debug('Could not update title with Google truncated title trick.')
             full_title = get_title(soup)
-            logging.debug('Found it anyway here [{}]'.format(full_title))
+            logger.debug('Found it anyway here [{}]'.format(full_title))
         else:
-            logging.debug('Nothing to do for title [{}]'.format(full_title))
+            logger.debug('Nothing to do for title [{}]'.format(full_title))
     return full_title.strip()
