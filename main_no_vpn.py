@@ -20,8 +20,9 @@ def main():
     # https://news.google.com/?output=rss&hl=fr
     # RSS Feed does not work for Japanese/Chinese language.
     args = get_script_arguments()
+    keywords = args.keywords.split(',') if args.keywords is not None else None
     run(
-        keywords=args.keywords.split(','),
+        keywords=keywords,
         language=args.language,
         limit=args.limit_num_links_per_keyword,
         retrieve_content_behind_links=args.retrieve_content_behind_links,
