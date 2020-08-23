@@ -64,14 +64,6 @@ In my case, I subscribed to this VPN: [https://www.expressvpn.com/](https://www.
 
 I provide a python binding for this VPN here: [https://github.com/philipperemy/expressvpn-python](https://github.com/philipperemy/expressvpn-python).
 
-Run those commands in Ubuntu 64 bits to configure the VPN with the Google News Scraper project:
-```
-git clone git@github.com:philipperemy/expressvpn-python.git evpn
-cd evpn
-sudo dpkg -i expressvpn_1.2.0_amd64.deb # will install the binaries provided by ExpressVPN
-sudo pip install . # will install it as a package
-```
-
 Also make sure that:
 - you can run `expressvpn` in your terminal.
 - ExpressVPN is properly configured:
@@ -82,9 +74,9 @@ Also make sure that:
 Once you have all of that, simply run:
 
 ```
-# I advise you to set RUN_POST_PROCESSING=0 in conf.json, run main.py. 
+# I advise you to set RUN_POST_PROCESSING=false in conf.json, run main.py. 
 # It will gather all the Google data in data/. Then stop the script.
-# Change the parameter RUN_POST_PROCESSING=1 and run it again.
+# Change the parameter RUN_POST_PROCESSING=true and run it again.
 # The script will read from data/ and start fetching the content of the links.
 python main.py
 ```
