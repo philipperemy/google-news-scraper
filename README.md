@@ -18,7 +18,7 @@ No upper bound of course but it should be in the range **`100,000 articles per d
 git clone git@github.com:philipperemy/google-news-scraper.git && cd google-news-scraper
 virtualenv -p python3 venv && source venv/bin/activate # optional but recommended!
 pip install -r requirements.txt
-python main_no_vpn.py # for VPN support, scroll down!
+python main_no_vpn.py --keywords hello,toto --language ja # for VPN support, scroll down!
 ```
 
 ## Output example
