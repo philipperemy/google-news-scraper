@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import errno
+import json
 import logging
 import os
 import random
@@ -14,7 +15,6 @@ from fake_useragent import UserAgent
 from mtranslate import translate
 from slugify import slugify
 
-from constants import *
 from extract_content import get_content, get_title
 
 logger = logging.getLogger(__name__)
@@ -32,10 +32,17 @@ def parallel_function(f, sequence, num_threads=None):
 
 class URL:
 
-    def __init__(self):
+    def __init__(self, language='ja'):  # ja, cn...
         self.num_calls = 0
-        self.google_news_url = 'https://www.google.co.jp/search?q={}&hl=ja&source=lnt&' \
-                               'tbs=cdr%3A1%2Ccd_min%3A{}%2Ccd_max%3A{}&tbm=nws&start={}'
+
+        if language == 'ja':
+            self.google_news_url = 'https://www.google.co.jp/search?q={}&hl=ja&source=lnt&' \
+                                   'tbs=cdr%3A1%2Ccd_min%3A{}%2Ccd_max%3A{}&tbm=nws&start={}'
+        elif language == 'cn':
+            self.google_news_url = 'https://www.google.com.hk/search?q={}&source=lnt&' \
+                                   'tbs=cdr%3A1%2Ccd_min%3A{}%2Ccd_max%3A{}&tbm=nws&start={}'
+        else:
+            raise Exception('Unknown language. Only [ja] and [cn] are supported.')
 
     def create(self, q, start, year_start, year_end):
         self.num_calls += 1
@@ -43,7 +50,7 @@ class URL:
 
 
 def extract_links(content):
-    soup = BeautifulSoup(content.decode('utf8'), 'html.parser')
+    soup = BeautifulSoup(content.decode('utf8'), 'lxml')
     blocks = [a for a in soup.find_all('div', {'class': ['dbsr']})]
     links_list = [(b.find('a').attrs['href'], b.find('div', {'role': 'heading'}).text) for b in blocks]
     dates_list = [b.find('span', {'class': 'WG9SHc'}).text for b in blocks]
@@ -52,21 +59,20 @@ def extract_links(content):
     return output
 
 
-def google_news_run(keyword, limit=10, year_start=2010, year_end=2011, sleep_time_every_ten_articles=0):
+def google_news_run(keyword, language='ja', limit=10, year_start=2010, year_end=2011, sleep_time_every_ten_articles=0):
     num_articles_index = 0
     ua = UserAgent()
-    uf = URL()
+    uf = URL(language)
     result = []
     while num_articles_index < limit:
         url = uf.create(keyword, num_articles_index, year_start, year_end)
         logger.info('[Google News] Fetched %s articles for keyword [%s]. Limit is %s.' %
                     (num_articles_index, keyword, limit))
-        logger.debug('[Google News] %s.' % url)
+        logger.info('[Google News] %s.' % url)
         headers = {'User-Agent': ua.chrome}
         try:
             response = requests.get(url, headers=headers, timeout=20)
             links = extract_links(response.content)
-
             nb_links = len(links)
             if nb_links == 0 and num_articles_index == 0:
                 raise Exception(
@@ -101,12 +107,12 @@ def mkdir_p(path):
             raise
 
 
-def get_keywords():
+def get_keywords(language):  # ja, cn...
     keyword_url = 'http://www.generalecommerce.com/clients/broadcastnews_tv/category_list_js.html'
     logger.info('No keywords specified. Will randomly select some keywords from %s.' % keyword_url)
     response = requests.get(keyword_url, timeout=20)
     assert response.status_code == 200
-    soup = BeautifulSoup(response.content, 'html.parser')
+    soup = BeautifulSoup(response.content, 'lxml')
     keywords = [l.replace('news', '').strip() for l in
                 set([v.text for v in soup.find_all('td', {'class': 'devtableitem'}) if 'http' not in v.text])]
     assert len(keywords) > 0
@@ -114,7 +120,7 @@ def get_keywords():
     logger.info('Found %s keywords.' % len(keywords))
     random.shuffle(keywords)
     for keyword in keywords:
-        japanese_keyword = translate(keyword, 'ja')
+        japanese_keyword = translate(keyword, language)
         logger.info('[Google Translate] {} -> {}'.format(keyword, japanese_keyword))
         if re.search('[a-zA-Z]', japanese_keyword):  # we don't want that: Fed watch -> Fed時計
             logger.info('Discarding keyword.')
@@ -122,16 +128,19 @@ def get_keywords():
         yield japanese_keyword
 
 
-def run(keywords=None):
+def run(keywords: list = None, language='ja', limit=50, retrieve_content_behind_links=False, num_threads=1):
     logger.info('[Google News] Output is in data/')
     if keywords is None:
-        keywords = get_keywords()
+        keywords = get_keywords(language)
     for keyword in keywords:
         logger.info('[Google News] -> FETCHING NEWS FOR KEYWORD [{}].'.format(keyword))
-        generate_articles(keyword, year_end=datetime.now().year)
+        download_links_and_contents(keyword, language=language, year_end=datetime.now().year,
+                                    limit=limit, retrieve_content_behind_links=retrieve_content_behind_links,
+                                    num_threads=num_threads)
 
 
-def generate_articles(keyword, year_start=2010, year_end=2019, limit=data.ARTICLE_COUNT_LIMIT_PER_KEYWORD):
+def download_links_and_contents(keyword, language='ja', year_start=2010, year_end=2019,
+                                limit=50, retrieve_content_behind_links=False, num_threads=1):
     tmp_news_folder = 'data/{}/news'.format(keyword)
     mkdir_p(tmp_news_folder)
 
@@ -145,19 +154,23 @@ def generate_articles(keyword, year_start=2010, year_end=2019, limit=data.ARTICL
             links = json.load(fp=r)
         logger.info('Found {} links.'.format(len(links)))
     else:
-        links = google_news_run(keyword=keyword,
-                                limit=limit,
-                                year_start=year_start,
-                                year_end=year_end,
-                                sleep_time_every_ten_articles=data.SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS)
+        links = google_news_run(
+            keyword=keyword,
+            language=language,
+            limit=limit,
+            year_start=year_start,
+            year_end=year_end,
+            sleep_time_every_ten_articles=10
+        )
+        logger.info(f'Dumping links to %s.' % json_file)
         with open(json_file, 'w', encoding='utf8') as w:
             json.dump(fp=w, obj=links, indent=2, ensure_ascii=False)
-    if int(data.RUN_POST_PROCESSING):
-        retrieve_data_from_links(links, tmp_news_folder)
+    if retrieve_content_behind_links:
+        retrieve_data_from_links(links, tmp_news_folder, num_threads)
 
 
 def retrieve_data_for_link(param):
-    logger.info('retrieve_data_for_link - param = {}'.format(param))
+    logger.debug('retrieve_data_for_link - param = {}'.format(param))
     (full_link, tmp_news_folder) = param
     link = full_link['link']
     google_title = full_link['title']
@@ -172,7 +185,7 @@ def retrieve_data_for_link(param):
     if not already_fetched:
         try:
             html = download_html_from_link(link)
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = BeautifulSoup(html, 'lxml')
             content = get_content(soup)
             full_title = complete_title(soup, google_title)
             article = {
@@ -181,17 +194,16 @@ def retrieve_data_for_link(param):
                 'content': content,
                 'date': link_datetime
             }
-            logger.info(f'Dumping progress to %s.' % json_file)
+            logger.info(f'Dumping content to %s.' % json_file)
             with open(json_file, 'w', encoding='utf8') as w:
-                json.dump(fp=w, obj=article)
+                json.dump(fp=w, obj=article, indent=2, ensure_ascii=False)
         except Exception as e:
             logger.error(e)
             logger.error('ERROR - could not download article with link {}'.format(link))
             pass
 
 
-def retrieve_data_from_links(full_links, tmp_news_folder):
-    num_threads = data.LINKS_POST_PROCESSING_NUM_THREADS
+def retrieve_data_from_links(full_links, tmp_news_folder, num_threads):
     if num_threads > 1:
         inputs = [(full_links, tmp_news_folder) for full_links in full_links]
         parallel_function(retrieve_data_for_link, inputs, num_threads)

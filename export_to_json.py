@@ -22,4 +22,4 @@ if __name__ == '__main__':
         output_filename = os.path.join(OUTPUT_DIR, '{}.json'.format(i))
         print(output_filename)
         with open(output_filename, 'w') as fp:
-            json.dump(content, fp, sort_keys=True, indent=4, ensure_ascii=False)
+            json.dump(content, fp, sort_keys=True, indent=2, ensure_ascii=False)
