@@ -10,7 +10,7 @@ def get_script_arguments():
     args.add_argument('--keywords', default=None, type=str)
     args.add_argument('--language', default='ja')
     args.add_argument('--retrieve_content_behind_links', action='store_true')
-    args.add_argument('--limit_num_links_per_keywords', default=50, type=int)
+    args.add_argument('--limit_num_links_per_keyword', default=50, type=int)
     args.add_argument('--num_threads', default=1, type=int)
     return args.parse_args()
 
@@ -23,7 +23,7 @@ def main():
     run(
         keywords=args.keywords.split(','),
         language=args.language,
-        limit=args.limit_num_links_per_keywords,
+        limit=args.limit_num_links_per_keyword,
         retrieve_content_behind_links=args.retrieve_content_behind_links,
         num_threads=args.num_threads
     )

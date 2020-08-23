@@ -138,7 +138,7 @@ def run(keywords: list = None, language='ja', limit=50, retrieve_content_behind_
     if keywords is None:
         keywords = get_keywords(language)
     for keyword in keywords:
-        logger.info('[Google News] -> FETCHING NEWS FOR KEYWORD [{}].'.format(keyword))
+        # logger.info('[Google News] -> FETCHING NEWS FOR KEYWORD [{}].'.format(keyword))
         download_links_and_contents(keyword, language=language, year_end=datetime.now().year,
                                     limit=limit, retrieve_content_behind_links=retrieve_content_behind_links,
                                     num_threads=num_threads)
@@ -149,7 +149,7 @@ def download_links_and_contents(keyword, language='ja', year_start=2010, year_en
     tmp_news_folder = 'data/{}/{}/news'.format(language, keyword)
     mkdir_p(tmp_news_folder)
 
-    tmp_link_folder = 'data/{}/'.format(language, keyword)
+    tmp_link_folder = 'data/{}/{}'.format(language, keyword)
     mkdir_p(tmp_link_folder)
 
     json_file = '{}/{}_{}_{}_links.json'.format(tmp_link_folder, keyword, year_start, year_end)
