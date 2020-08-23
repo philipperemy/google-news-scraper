@@ -17,12 +17,16 @@ def get_script_arguments():
 
 def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stdout)
-    # https://news.google.co.jp
     # https://news.google.com/?output=rss&hl=fr
-    # RSS Feed does not work for Japanese language.
+    # RSS Feed does not work for Japanese/Chinese language.
     args = get_script_arguments()
-    run(args.keywords.split(','), args.language, args.limit_num_links_per_keywords,
-        args.retrieve_content_behind_links, args.num_threads)
+    run(
+        keywords=args.keywords.split(','),
+        language=args.language,
+        limit=args.limit_num_links_per_keywords,
+        retrieve_content_behind_links=args.retrieve_content_behind_links,
+        num_threads=args.num_threads
+    )
 
 
 if __name__ == '__main__':

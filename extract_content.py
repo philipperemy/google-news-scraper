@@ -27,7 +27,7 @@ def get_content(soup):
         return collect_content(div4)
     elif div5:
         return collect_content(div5)
-    elif div_tags_l:
+    elif div_tags_l and len(collect_content(div_tags_l)) > 0:
         return collect_content(div_tags_l)
     elif div6:
         return collect_content(div6)

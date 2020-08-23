@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import errno
+import hashlib
 import json
 import logging
 import os
@@ -13,11 +14,14 @@ import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from mtranslate import translate
-from slugify import slugify
 
 from extract_content import get_content, get_title
 
 logger = logging.getLogger(__name__)
+
+
+def hash_string(s: str):
+    return hashlib.md5(s.encode('utf-8')).hexdigest()
 
 
 def parallel_function(f, sequence, num_threads=None):
@@ -66,8 +70,9 @@ def google_news_run(keyword, language='ja', limit=10, year_start=2010, year_end=
     result = []
     while num_articles_index < limit:
         url = uf.create(keyword, num_articles_index, year_start, year_end)
-        logger.info('[Google News] Fetched %s articles for keyword [%s]. Limit is %s.' %
-                    (num_articles_index, keyword, limit))
+        if num_articles_index > 0:
+            logger.info('[Google News] Fetched %s articles for keyword [%s]. Limit is %s.' %
+                        (num_articles_index, keyword, limit))
         logger.info('[Google News] %s.' % url)
         headers = {'User-Agent': ua.chrome}
         try:
@@ -141,10 +146,10 @@ def run(keywords: list = None, language='ja', limit=50, retrieve_content_behind_
 
 def download_links_and_contents(keyword, language='ja', year_start=2010, year_end=2019,
                                 limit=50, retrieve_content_behind_links=False, num_threads=1):
-    tmp_news_folder = 'data/{}/news'.format(keyword)
+    tmp_news_folder = 'data/{}/{}/news'.format(language, keyword)
     mkdir_p(tmp_news_folder)
 
-    tmp_link_folder = 'data/{}/links'.format(keyword)
+    tmp_link_folder = 'data/{}/'.format(language, keyword)
     mkdir_p(tmp_link_folder)
 
     json_file = '{}/{}_{}_{}_links.json'.format(tmp_link_folder, keyword, year_start, year_end)
@@ -175,18 +180,20 @@ def retrieve_data_for_link(param):
     link = full_link['link']
     google_title = full_link['title']
     link_datetime = full_link['date']
-    compliant_filename_for_link = slugify(link)
-    max_len = 100
-    if len(compliant_filename_for_link) > max_len:
-        logger.info('max length exceeded for filename ({}). Truncating.'.format(compliant_filename_for_link))
-        compliant_filename_for_link = compliant_filename_for_link[:max_len]
+    os.environ['PYTHONHASHSEED'] = '0'
+    compliant_filename_for_link = hash_string(link)  # just a hash number.
     json_file = '{}/{}.json'.format(tmp_news_folder, compliant_filename_for_link)
     already_fetched = os.path.isfile(json_file)
     if not already_fetched:
         try:
-            html = download_html_from_link(link)
+            html = download_html_from_link(link)  # .decode('utf8', errors='ignore')
             soup = BeautifulSoup(html, 'lxml')
             content = get_content(soup)
+            if len(content) == 0:
+                html = html.decode('utf8', errors='ignore')
+                soup = BeautifulSoup(html, 'lxml')
+                content = get_content(soup)
+            content = content.strip()
             full_title = complete_title(soup, google_title)
             article = {
                 'link': link,
@@ -214,12 +221,13 @@ def retrieve_data_from_links(full_links, tmp_news_folder, num_threads):
 
 def download_html_from_link(link, params=None, fail_on_error=True):
     try:
-        logger.info('Get -> {} '.format(link))
+        # logger.info('Get -> {} '.format(link))
         response = requests.get(link, params, timeout=20)
         if fail_on_error and response.status_code != 200:
             raise Exception('Response code is not [200]. Got: {}'.format(response.status_code))
         else:
-            logger.info('Download successful [OK]')
+            pass
+            # logger.info('Download successful [OK]')
         return response.content
     except:
         if fail_on_error:
