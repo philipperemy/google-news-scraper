@@ -53,7 +53,7 @@ In `conf.json`:
 
 - `SLEEP_TIME_EVERY_TEN_ARTICLES_IN_SECONDS`: Sleep time before two calls to Google News. On average 10 articles are fetched per call. Default value is 1 second.
 - `ARTICLE_COUNT_LIMIT_PER_KEYWORD`: Maximum number of articles fetched for one keyword. Default value is 300. I tried it up to 600 and it worked.
-- `RUN_POST_PROCESSING`: Post processing means opening the URL of the article and extracting the content. **For maximum efficiency, we first scrape all the available tuples (title, datetime, url) on Google.com. Then, from the collected URLs, we fetch the content. This two-step procedure is empirically more efficient.** Run first `RUN_POST_PROCESSING` with a value of 0. Then, run it a second time with `RUN_POST_PROCESSING` set to 1. All the Google data scraped is persisted so no problem!
+- `RUN_POST_PROCESSING`: Post processing means opening the URL of the article and extracting the content. **For maximum efficiency, we first scrape all the available tuples (title, datetime, url) on Google.com. Then, from the collected URLs, we fetch the content. This two-step procedure is empirically more efficient.** Run first `RUN_POST_PROCESSING` with a value of `false`. Then, run it a second time with `RUN_POST_PROCESSING` set to `true`. All the Google data scraped is persisted so no problem!
 - `LINKS_POST_PROCESSING_CLEAN_HTML_RATIO_LETTERS_LENGTH`: Technical parameter for the post processing. Apply to Japanese only. We are interesting in dropping the english sentences from the Japanese articles. Default is 0.33.
 - `LINKS_POST_PROCESSING_NUM_THREADS`: Number of threads to use when doing this post processing task. Default is 8.
 
